@@ -1,6 +1,24 @@
 	.data
 song: .string "D5-D4-RRA4---D4-D5---E5-E4-RRA4---E4-E5---g5-g4-RRA5---g4-g5---E5-E4-RRA4---E4-E5---D5-D4-RRA4---D4-g5---E5-E4-RRA4---E4-G5---g5-g4-A5-A4-D6-D5-B5-B4-A5---A4-g5---A4-E5-D5-"
 m2: .string "--D4-RRA4-D4---D5---E5-E4-RRA4-E4---E5---g5-g4-RRA5---g4-g5---E5-E4-RRA4-A3---E5---D5-D4-RRA4---D4-g5---E5-E4-RRA4---E4-G5---g5-g4-A5-A4-D6-D5-E6-E5-A5--A4--G5-g5-A4-E5---;"
+
+board1: .string  "|---------------------------------------------|", 0xD, 0xA, 0
+board2: .string  "|*********************************************|", 0xD, 0xA, 0
+board3: .string  "|*****     *****     *****     *****     *****|", 0xD, 0xA, 0
+board4: .string  "|                                             |", 0xD, 0xA, 0
+board5: .string  "|                                             |", 0xD, 0xA, 0
+board6: .string  "|                                             |", 0xD, 0xA, 0
+board7: .string  "|                                             |", 0xD, 0xA, 0
+board8: .string  "|.............................................|", 0xD, 0xA, 0
+board9: .string  "|                                             |", 0xD, 0xA, 0
+board10: .string "|                                             |", 0xD, 0xA, 0
+board11: .string "|                                             |", 0xD, 0xA, 0
+board12: .string "|                                             |", 0xD, 0xA, 0
+board13: .string "|                                             |", 0xD, 0xA, 0
+board14: .string "|                                             |", 0xD, 0xA, 0
+board15: .string "|.............................................|", 0xD, 0xA, 0
+board16: .string "|---------------------------------------------|", 0xD, 0xA, 0
+language: .string "1234567890qwertyuiopasdfghjklzxcvbnm!@#$%^&*()_", 0xD, 0xA, 0
 	.text
 	.global lab7_library
 	.global uart_init
@@ -22,8 +40,9 @@ m2: .string "--D4-RRA4-D4---D5---E5-E4-RRA4-E4---E5---g5-g4-RRA5---g4-g5---E5-E4
 	.global illuminate_RGB_LED
 	.global rng
 	.global playNote
+	.global shiftString
 songPtr: .word song
-
+boardPtr:
 
 Uart0Handler:
 	STMFD SP!, {lr, r0-r12}
@@ -35,7 +54,6 @@ Uart0Handler:
 	STRB r1, [r4, #0x044]
 	MOV r4, #0x0000
 	MOVT r4, #0x4003
-
 	BL read_character
 	CMP r0, #0x77
 	BNE notW
@@ -82,7 +100,7 @@ notR:
 	BX lr
 
 Timer0Handler:
-	STMFD SP!, {lr, r3-r5, r7-r12}
+	STMFD SP!, {lr, r3-r5, r7-r11}
 	MOV r4, #0
 	MOVT r4, #0x4003
 	;clear timer
@@ -90,9 +108,21 @@ Timer0Handler:
 	ORR r1, r1, #0x1
 	STRB r1, [r4, #0x24]
 	BL nextNote
+
 	; handle game stuff here:
 
-	LDMFD SP!, {lr, r3-r5, r7-r12}
+	;TODO: update frog position, flip boardupdate bit, shift game rows if boardupdate is true, redraw game board
+
+	; if valid position for frog, continue and add to score, else subtract life
+
+	;if life == 0, set game over to true
+
+	;is position a fly? if so, add to score and replace fly
+
+	; is a winning tile? add to score, add to win counter, restart game
+
+		; if win counter == 3, increase clock period by .05 seconds
+	LDMFD SP!, {lr, r3-r5, r7-r11}
 	BX lr
 
 
@@ -191,6 +221,33 @@ timerOff:
 	LDMFD SP!, {lr, r3-r5, r7-r12}
 	BX lr
 
+shiftString:    ;r0 begining of the string
+                ;r1 length of string
+                ;r2
+    STMFD SP!, {lr, r2-r12}
+    ;BL output_string
+    MOV r0, #0
+    MOVT r0, #0x2000
+    MOV r2,#0
+    LDRB r2,[r0,r1] ;last memory value
+shiftMemory:
+    MOV r4, r1
+    SUB r1, r1, #1
+    LDRB r3, [r0,r1]
+    STRB r3, [r0,r4]
+
+    LDR r4, boardPtr    ;get header from memory
+    LDR r0, [r4]
+    BL output_string
+    MOV r0, #0
+    MOVT r0, #0x2000
+
+    CMP r1,#0
+    BGT shiftMemory
+    STRB r2, [r0]
+    BL output_string
+    LDMFD sp!, {lr, r2-r12}
+    BX lr
 
 
 

@@ -20,6 +20,7 @@
 	.global illuminate_RGB_LED
 	.global rng
 	.global read_character
+	.global shift_string
 
 Lab7:				;diplays the prompt and initializes the interrupts then goes into an
 					;infinate loop until the endgame variable is set to 0
