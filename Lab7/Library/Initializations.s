@@ -5,7 +5,7 @@
 	.global GPIO_init
 	.global timer0_interrupt_init
 	.global timer1_interrupt_init
-
+	.global timer2_interrupt_init
 
 
 interrupt_init:		;initialize UART interrupt
@@ -143,7 +143,8 @@ stabilize2:
 	STRB r1, [r4, #0x4]
 	;set interrupt interval
 	LDR r1, [r4, #0x28]
-	MOV r1, #0x9C40 ;approx 400 hz
+	MOV r1, #0x8480
+	MOVT r1, #0x1E ; initial clock speed (.125 seconds)
 	STR r1, [r4, #0x28]
 	;set timer to interrup when top limit of timer reached
 	LDRB r1, [r4, #0x18]
@@ -156,13 +157,68 @@ stabilize2:
 	LSL r2, r2, #2
 	ORR r1, r1, r2
 	STR r1, [r3, #0x100]
-	;re-enable timer
-;	LDR r1, [r4, #0xC]
-;	ORR r1, r1, #0x1
-;	STR r1, [r4, #0xC]
+;	re-enable timer
+	LDR r1, [r4, #0xC]
+	ORR r1, r1, #0x1
+	STR r1, [r4, #0xC]
 	LDMFD sp!, {lr, r0-r12}
 	BX lr
 
+timer2_interrupt_init:	;initalize Timer interrupt for speaker
+	STMFD SP!, {lr, r0-r12}
+	;init Timer interrupt---------------------------
+	MOV r3, #0xE000
+	MOVT r3, #0xE000
+	MOV r4, #0x2000
+	MOVT r4, #0x4003 ; sets base address for Timer1
+	MOV r2, #0xE000
+	MOVT r2, #0x400F
+	;Connect clock to Timer
+	LDRB r1, [r2, #0x604]
+	ORR r1, r1, #0x4
+	STRB r1, [r2, #0x604]
+	MOV r0, #0x0
+	MOV r1, #0xFFFF
+stabilize3:
+	ADD r0, #0x1
+	CMP r0, r1
+	BLT stabilize3
+
+	;temporarily disable timer for initilization process
+	LDR r1, [r4, #0xC]
+	BIC r1, r1, #0x1
+	STR r1, [r4, #0xC]
+	;set timer up for 32-bit Mode
+	LDRB r1, [r4]
+	BIC r1, r1, #0x7
+	STRB r1, [r4]
+	;puts timer into periodic mode
+	LDRB r1, [r4, #0x4]
+	BIC r1, r1, #0x1
+	ORR r1, r1, #0x2 ;sets lowest 2 bits to b'10
+	STRB r1, [r4, #0x4]
+	;set interrupt interval
+	LDR r1, [r4, #0x28]
+	MOV r1, #0x8480
+	MOVT r1, #0x11E ; initial clock speed (.125 seconds)
+	STR r1, [r4, #0x28]
+	;set timer to interrup when top limit of timer reached
+	LDRB r1, [r4, #0x18]
+	ORR r1, r1, #0x1
+	STRB r1, [r4, #0x18]
+	;enable timer interrupt (NVIC)
+	LDR r1, [r3, #0x100]
+	MOV r2, #0x0
+	MOVT r2, #0x8
+	LSL r2, r2, #4
+	ORR r1, r1, r2
+	STR r1, [r3, #0x100]
+	;re-enable timer
+	LDR r1, [r4, #0xC]
+	ORR r1, r1, #0x1
+	STR r1, [r4, #0xC]
+	LDMFD sp!, {lr, r0-r12}
+	BX lr
 GPIO_init:		;initializes GPIO
 	STMFD SP!,{lr, r0-r12}
 	;TODO: init clock
