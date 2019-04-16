@@ -36,7 +36,6 @@ hiscores10: .string "10>-------- : ----",0xD, 0xA, 0x0
 	.global button_table
 	.global Uart0Handler
 	.global PortAHandler
-	.global virtual_ALU
 	.global Timer0Handler
 	.global Timer1Handler
 	.global timer0_interrupt_init
@@ -50,12 +49,13 @@ hiscores10: .string "10>-------- : ----",0xD, 0xA, 0x0
 	.global poll_character
 	.global fill_string
 	.global mode
+	.global redrawBoard
+
 menuPtr: .word menu
 instPtr: .word inst
 hiscoreStringPtr: .word hiscoreString
 hiscoresPtr: .word hiscores1
 modePtr: .word 0x20005000
-
 
 Lab7:				;diplays the prompt and initializes the interrupts then goes into an
 					;infinate loop until the endgame variable is set to 0

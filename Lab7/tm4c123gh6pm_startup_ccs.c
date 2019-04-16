@@ -45,7 +45,6 @@ extern void Timer0Handler(void);
 extern void Uart0Handler(void);
 extern void PortAHandler(void);
 extern void Timer1Handler(void);
-extern void Timer2Handler(void);
 //extern void my_i2cIntHandler(void);
 //*****************************************************************************
 //
@@ -111,7 +110,7 @@ void (* const g_pfnVectors[])(void) =
     IntDefaultHandler,                      // Timer 0 subtimer B
     Timer1Handler,                      // Timer 1 subtimer A
     IntDefaultHandler,                      // Timer 1 subtimer B
-    Timer2Handler,                      // Timer 2 subtimer A
+    IntDefaultHandler,                      // Timer 2 subtimer A
     IntDefaultHandler,                      // Timer 2 subtimer B
     IntDefaultHandler,                      // Analog Comparator 0
     IntDefaultHandler,                      // Analog Comparator 1
