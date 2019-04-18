@@ -9,7 +9,7 @@ Logo5: .string "|_____|   |____| |___|`.___.'  `._____.'  `._____.'|________||__
 title: .string "MAIN MENU", 0xD, 0xA, 0xD, 0xA
 op1: .string "1: Start Game", 0xD, 0xA
 op2: .string "2: How to Play", 0xD, 0xA
-op3: .string "3: Hiscores", 0xD, 0xA, 0x0
+op3: .string "3: Hiscores", 0xD, 0xA, 0xD, 0xA, "Press M to mute music", 0xD, 0xA, 0x0
 
 inst: .string "The instructions will go here. (Press 0 to return)", 0
 hiscoreString: .string 0xD, 0xA ,"Hiscores will go here once they are implemented (Press 0 to return)", 0xD, 0xA, 0xD, 0xA, 0xD, 0xA
@@ -36,6 +36,7 @@ hiscores10: .string "10>-------- : ----",0xD, 0xA, 0x0
 	.global button_table
 	.global Uart0Handler
 	.global PortAHandler
+	.global virtual_ALU
 	.global Timer0Handler
 	.global Timer1Handler
 	.global timer0_interrupt_init
@@ -49,13 +50,12 @@ hiscores10: .string "10>-------- : ----",0xD, 0xA, 0x0
 	.global poll_character
 	.global fill_string
 	.global mode
-	.global redrawBoard
-
 menuPtr: .word menu
 instPtr: .word inst
 hiscoreStringPtr: .word hiscoreString
 hiscoresPtr: .word hiscores1
 modePtr: .word 0x20005000
+
 
 Lab7:				;diplays the prompt and initializes the interrupts then goes into an
 					;infinate loop until the endgame variable is set to 0

@@ -11,7 +11,7 @@ board5: .string  "|~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~|", 0xD, 0xA
 board6: .string  "|~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~|", 0xD, 0xA
 board7: .string  "|.............................................|", 0xD, 0xA
 board8: .string  "|                                             |", 0xD, 0xA
-board9: .string "|                                             |", 0xD, 0xA
+board9: .string  "|                                             |", 0xD, 0xA
 board10: .string "|                                             |", 0xD, 0xA
 board11: .string "|                                             |", 0xD, 0xA
 board12: .string "|                                             |", 0xD, 0xA
@@ -53,6 +53,8 @@ WIN_COUNTER: .byte 0x0; this counter is incremented every time the player gets t
 	.global div_and_mod
 	.global shift_string
 	.global fill_string
+	.global check_valid_location
+
 	.global mode
 songPtr: .word song
 boardPtr: .word board0
@@ -92,7 +94,7 @@ Uart0Handler:
 	MOV r4, #0x0000
 	MOVT r4, #0x4003
 	BL read_character
-	CMP r0, #0x72
+	CMP r0, #'m'
 	BNE notR
 	LDR r1, [r4, #0xC] ;toggle timer 0
 	EOR r1, r1, #0x1
@@ -106,28 +108,28 @@ Uart0Handler:
 
 notR:
 
-	CMP r0, #0x31
+	CMP r0, #'1'
 	BNE not1
 	SUB r0, r0, #0x30
 	LDR r1, modePtr
 	STRB r0, [r1]
 ;----------------------
 not1:
-	CMP r0, #0x32
+	CMP r0, #'2'
 	BNE not2
 	SUB r0, r0, #0x30
 	LDR r1, modePtr
 	STRB r0, [r1]
 ;---------------------
 not2:
-	CMP r0, #0x33
+	CMP r0, #'3'
 	BNE not3
 	SUB r0, r0, #0x30
 	LDR r1, modePtr
 	STRB r0, [r1]
 
 not3:
-	CMP r0, #0x30
+	CMP r0, #'0'
 	BNE not0
 	SUB r0, r0, #0x30
 	LDR r1, modePtr
@@ -137,9 +139,7 @@ not0:
 
 	MOV r4, #0x0000
 	MOVT r4, #0x4003
-	LDR r1, [r4, #0xC] ;disable timer 0
-	BIC r1, r1, #0x1
-	STR r1, [r4, #0xC]
+
 	LDMFD SP!, {lr, r0-r12}
 	BX lr
 
@@ -441,6 +441,8 @@ timerOff:
 	LDMFD SP!, {lr, r3-r5, r7-r12}
 	BX lr
 
+
+
 redrawBoard:	;shifts strings and redraws board
 	STMFD SP!, {lr, r0-r12}
 	LDR r4, boardPtr
@@ -483,7 +485,7 @@ shiftLines:
 	ADD r0, r0, r7
 	ADD r0, r0, #1
 	MOV r1, #45
-	BL shiftString
+	BL shift_string
 	MOV r1, r8
 	MOV r0, #2
 	BL div_and_mod
@@ -495,36 +497,55 @@ shiftLines:
 	LDMFD SP!, {lr, r3-r12}
 	BX lr
 
-shiftString:    ;r0 begining of the string
-                ;r1 length of string
-                ;r2 direction of shift
-    STMFD SP!, {lr, r2-r12}
-    SUB r1,r1,#1
-    LDRB r3,[r0,r1] ;last memory value
-    CMP r2,#0
-    BEQ shiftMemoryRight
-    LDRB r3,[r0] ;first memory value
-    MOV r4, #0
-shiftMemoryLeft:
-	MOV r5, r4
-	ADD r4, r4,#1
-	LDRB r6, [r0,r4]
-	STRB r6, [r0,r5]
-	CMP r4, r1
-	BNE shiftMemoryLeft
-	STRB r3, [r0,r4]
-    LDMFD sp!, {lr, r2-r12}
-    BX lr
-shiftMemoryRight:
-	MOV r4, r1
-	SUB r1, r1, #1
-	LDRB r5, [r0,r1]
-	STRB r5, [r0,r4]
-	CMP r1,#0
-	BGT shiftMemoryRight
-	STRB r3, [r0]
-    LDMFD sp!, {lr, r2-r12}
-    BX lr
+check_valid_location:
+	STMFD SP!, {lr, r3-r12}
+
+	MOV r0, #0x1
+
+	CMP r1, #100
+	IT GT
+	MOVGT r0, #0x2
+
+	CMP r1, #145
+	IT GT
+	MOVGT r0, #0x1
+
+	CMP r2, #'*'
+	IT EQ
+	MOVEQ r0, #0x0
+
+
+	CMP r2, #'A'
+	IT EQ
+	MOVEQ r0, #0x0
+
+	CMP r2, #'-'
+	IT EQ
+	MOVEQ r0, #0x0
+
+	CMP r2, #'|'
+	IT EQ
+	MOVEQ r0, #0x0
+
+	CMP r2, #'C'
+	IT EQ
+	MOVEQ r0, #0x0
+
+	CMP r2, #'#'
+	IT EQ
+	MOVEQ r0, #0x0
+
+	CMP r2, #'H'
+	IT EQ
+	MOVEQ r0, #0x0
+
+	CMP r2, #'~'
+	IT EQ
+	MOVEQ r0, #0x0
+
+
+	LDMFD SP!, {lr, r3-r12}
+
 
 
 
