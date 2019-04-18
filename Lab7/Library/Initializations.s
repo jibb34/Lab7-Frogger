@@ -6,7 +6,7 @@
 	.global timer0_interrupt_init
 	.global timer1_interrupt_init
 	.global timer2_interrupt_init
-
+	.global SPI_init
 
 interrupt_init:		;initialize UART interrupt
 	STMFD SP!, {lr, r0-r12}
@@ -278,14 +278,96 @@ GPIO_init:		;initializes GPIO
 
 
 	;Port A
-	LDRB r1, [r9, #0x51C]
-	ORR r1, r1, #0x3C;(b'0011 1100)(xx(a5)(a4)(a3)(a2)xx
-	STRB r1, [r9, #0x51C] ; enables keypad input pins to digital
-	LDRB r1, [r9, #0x400]
-	BIC r1, #0x3C
-	STRB r1, [r9, #0x400] ; sets kip to input
+;	LDRB r1, [r9, #0x51C]
+;	ORR r1, r1, #0x3C;(b'0011 1100)(xx(a5)(a4)(a3)(a2)xx
+;	STRB r1, [r9, #0x51C] ; enables keypad input pins to digital
+;	LDRB r1, [r9, #0x400]
+;	BIC r1, #0x3C
+;	STRB r1, [r9, #0x400] ; sets kip to input
 	LDMFD sp!, {lr, r0-r12}
 	BX lr
+
+SPI_init:
+
+	STMFD SP!, {r0-r12, lr}
+	MOV r4, #0xE000 ; \\ENABLE SSI MODULE 0
+	MOVT r4, #0x400F
+	LDRB r1, [r4, #0x61C]
+	ORR r1, r1, #0x1
+	STRB r1, [r4, #0x61C]
+
+	MOV r4, #0xE000 ; \\ENABLE CLK FOR GPIOA
+	MOVT r4, #0x400F
+	LDRB r1, [r4, #0x608]
+	ORR r1, r1, #0x1
+	STRB r1, [r4, #0x608]
+
+	MOV r4, #0x4000 ; \\SET GPIO AFSEL ;must be deselected when we want to access gpio buttons
+	MOVT r4, #0x4000
+	LDRB r1, [r4, #0x420]
+	ORR r1, r1, #0x3C
+	STRB r1, [r4, #0x420]
+
+	MOV r4, #0x4000 ; \\CONFIGURE PMCn FIELDS IN GPIOCTRL
+	MOVT r4, #0x4000
+	LDRB r1, [r4, #0x52C]
+	ORR r1, r1, #0x2 ; not sure of this value
+	STRB r1, [r4, #0x52C]
+
+	MOV r4, #0xE000 ; \\ENABLE SSI MODULE 0
+	MOVT r4, #0x400F
+	LDRB r1, [r4, #0x61C]
+	ORR r1, r1, #0x1
+	STRB r1, [r4, #0x61C]
+
+	MOV r4, #0x4000 ; \\SET PINS TO DIGITAL
+	MOVT r4, #0x4000
+	LDRB r1, [r4, #0x51C]
+	ORR r1, r1, #0x3C
+	STRB r1, [r4, #0x51C]
+
+	;configuring frame format:
+
+	MOV r4, #0x8000 ; \\CLEAR SSE BIT IN SSICR1
+	MOVT r4, #0x4000
+	LDRB r1, [r4, #0x61C]
+	BIC r1, r1, #0x2
+	STRB r1, [r4, #0x61C]
+
+	MOV r4, #0x8000 ; \\SET TO SLAVE/MASTER MODE
+	MOVT r4, #0x4000
+	LDRB r1, [r4, #0x4]
+	MOV r1, #0x0
+	STRB r1, [r4, #0x61C]
+
+	MOV r4, #0x8000 ; \\CONFIGURE SSICC TO USE SYS CLOCK
+	MOVT r4, #0x4000
+	LDRB r1, [r4, #0xFC8]
+	BIC r1, r1, #0xF
+	STRB r1, [r4, #0xFC8]
+
+	MOV r4, #0x8000 ; \\SET PRESCALE DIVISOR
+	MOVT r4, #0x4000
+	LDRB r1, [r4, #0x10]
+	ORR r1, r1, #0x2
+	STRB r1, [r4, #0x10]
+
+	MOV r4, #0x8000 ; \\SET SSICR0 FOR MODE, STANDARD, AND DATA SIZE
+	MOVT r4, #0x4000
+	LDRB r1, [r4]
+	MOV r2, #0x078F
+	ORR r1, r1, r2  ; SCR = 7, SPH = 1, SPO = 0, fSPI, 16b data size
+	STRB r1, [r4]
+
+	MOV r4, #0x8000 ; \\SET SSE BIT IN SSICR1
+	MOVT r4, #0x4000
+	LDRB r1, [r4, #0x61C]
+	ORR r1, r1, #0x2
+	STRB r1, [r4, #0x61C]
+	LDMFD SP!, {r0-r12, lr}
+	BX lr
+
+
 
 uart_init:
 	STMFD SP!,{r0-r12,lr}	; Store register lr on stack

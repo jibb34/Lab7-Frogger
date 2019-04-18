@@ -50,6 +50,8 @@ hiscores10: .string "10>-------- : ----",0xD, 0xA, 0x0
 	.global poll_character
 	.global fill_string
 	.global mode
+	.global SPI_init
+	.global output_7_seg
 menuPtr: .word menu
 instPtr: .word inst
 hiscoreStringPtr: .word hiscoreString
@@ -63,6 +65,7 @@ Lab7:				;diplays the prompt and initializes the interrupts then goes into an
 	STMFD sp!, {lr}
 	BL uart_init
 	BL GPIO_init
+;	BL SPI_init
 	;initalize the UART interrupt
 	;TODO: draw menu, provide branch to different outputs depending on result
 	BL timer0_interrupt_init ;initialize timer interrupt
@@ -82,6 +85,9 @@ mainMenu:
 	MOV r0, #0x0
 	STRB r0, [r1]
 menuLoop:
+
+	MOV r0, #0xF908
+
 	LDRB r0, [r1]
 	CMP r0, #0x1
 	BEQ startGame

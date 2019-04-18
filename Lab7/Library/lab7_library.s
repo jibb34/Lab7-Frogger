@@ -54,7 +54,7 @@ WIN_COUNTER: .byte 0x0; this counter is incremented every time the player gets t
 	.global shift_string
 	.global fill_string
 	.global check_valid_location
-
+	.global output_7_seg
 	.global mode
 songPtr: .word song
 boardPtr: .word board0
@@ -546,7 +546,20 @@ check_valid_location:
 
 	LDMFD SP!, {lr, r3-r12}
 
+output_7_seg: ;puts text on the screen take what ever value is in r0 and put it on the screen
+	STMFD SP!,{lr, r1-r12}	; Store register lr on stack
+	MOV r1, #0x8000		;SSI REG
+	MOVT r1, #0x4000
 
+	MOV r2, #0
+NOOUTPUT7SEG:
+	LDR r2,[r1, #0xC]		;load SSISR data to r2
+ 	AND r2,r2, #0x8	;isolate bit to check if SSI receive is full
+ 	CMP	r2,#0x0	;check if r3 is 0
+ 	BNE NOOUTPUT7SEG	;if not 0 branch to NOOUTPUT7SEG
+ 	STRB r0,[r1, #0x8]			;if 0 store byte in transmit register
+	LDMFD sp!, {lr, r1-r12}
+	BX lr
 
 
 
