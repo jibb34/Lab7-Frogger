@@ -7,10 +7,9 @@
 
 rng:
 	STMFD SP!, {lr, r1-r12}
-	MOV r4, #0x0
+	MOV r4, #0x0000
 	MOVT r4, #0x4003
 	LDRB r1, [r4, #0x50]
-	MOV r0, #7
 	BL div_and_mod
 	LDMFD SP!, {lr, r1-r12}
 	BX lr

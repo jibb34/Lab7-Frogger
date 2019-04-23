@@ -52,6 +52,7 @@ hiscores10: .string "10>-------- : ----",0xD, 0xA, 0x0
 	.global mode
 	.global SPI_init
 	.global output_7_seg
+	.global update_game_information
 menuPtr: .word menu
 instPtr: .word inst
 hiscoreStringPtr: .word hiscoreString
@@ -63,7 +64,12 @@ Lab7:				;diplays the prompt and initializes the interrupts then goes into an
 					;infinate loop until the endgame variable is set to 0
 					;NOTE: baud rate must be set to 115200
 	STMFD sp!, {lr}
+	MOV r0, #1
+	MOV r1, #-1
+	MOV r2, #-1
+	BL update_game_information
 	BL uart_init
+
 	BL GPIO_init
 ;	BL SPI_init
 	;initalize the UART interrupt
@@ -73,6 +79,8 @@ Lab7:				;diplays the prompt and initializes the interrupts then goes into an
 	BL interrupt_init
 	MOV r0, #0x7
 	BL illuminate_RGB_LED
+
+
 mainMenu:
 
 	ADD r6, r6, #0x1
@@ -129,15 +137,19 @@ startGame:
 ;game starts here
 	MOV r0, #0x4
 	BL illuminate_RGB_LED
-
+	MOV r0, #0
+	MOV r1, #60
+	MOV r2, #0
+	BL update_game_information
 	MOV r4, #0x0000
 	MOVT r4, #0x4003
-	LDR r1, [r4, #0xC] ;toggle timer off
-	BIC r1, r1, #0x1
-	STR r1, [r4, #0xC]
+	LDR r1, [r4, #0x28]
+	MOV r1, #0x2400
+	MOVT r1, #0xF4 ; update timer clock speed
+	STR r1, [r4, #0x28]
 	MOV r4, #0x1000
 	MOVT r4, #0x4003
-	LDR r1, [r4, #0xC] ;toggle timer off
+	LDR r1, [r4, #0xC] ;toggle timer off (turn off music)
 	BIC r1, r1, #0x1
 	STR r1, [r4, #0xC]
 

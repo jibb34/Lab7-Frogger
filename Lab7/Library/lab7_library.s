@@ -23,6 +23,7 @@ frogLocation: .word 0x2C5
 previousFrogValue: .word 0x2E
 previousFrogLocation: .word 0x41D
 settings: .word 0x0
+GAME_TIMER: .word 0x3C
 GAME_STATUS: .word 0x0; if game is running, this value is 0, if the game is over, or has not started yet, it is a 1, and 2 if the game is paused.
 BOARD_UPDATE: .byte 0x0 ; if this is not 0 the game moves the obstacles on the board
 FROG_LIVES: .byte 0x4 ; the game lives, if this reaches 0 the game is over
@@ -55,7 +56,13 @@ WIN_COUNTER: .byte 0x0; this counter is incremented every time the player gets t
 	.global fill_string
 	.global check_valid_location
 	.global output_7_seg
+	.global shiftSetOfRows
+	.global spawnWaterTile
+	.global spawnRoadTile
+	.global generateRandomCharacter
+	.global checkForSpawn
 	.global mode
+	.global update_game_information
 songPtr: .word song
 boardPtr: .word board0
 languagePtr: .word language
@@ -65,6 +72,7 @@ previousFrogValuePtr: .word previousFrogValue
 previousFrogLocationPtr: .word previousFrogLocation
 ;Game variable pointers:
 GAME_STATUS_PTR: .word GAME_STATUS
+GAME_TIMER_PTR: .word GAME_TIMER
 BOARD_UPDATE_PTR: .word BOARD_UPDATE
 FROG_LIVES_PTR: .word FROG_LIVES
 PLAYER_SCORE_PTR: .word PLAYER_SCORE
@@ -73,11 +81,37 @@ modePtr: .word 0x20005000
 ;-------------------------------------------------------------
 
 
+update_game_information: ; r0 - game status, r1 - game timer, r2 - Player score \\ returns current values in the same regs
+						; if -1 is put into a register, the info isn't updated
+	STMFD SP!, {lr, r3-r12}
+	CMP r0, #-1
+	BEQ noStatusUpdate
+	LDR r4, GAME_STATUS_PTR
+	STRB r0, [r4]
+noStatusUpdate:
+	LDRB r0, [r4]
 
+	CMP r1, #-1
+	BEQ noTimerUpdate
+	LDR r4, GAME_TIMER_PTR
+	STRB r1, [r4]
+noTimerUpdate:
+	LDRB r1, [r4]
+
+	CMP r2, #-1
+	BEQ noScoreUpdate
+	LDR r4, PLAYER_SCORE_PTR
+	STRB r2, [r4]
+noScoreUpdate:
+	LDRB r2, [r4]
+
+
+	LDMFD SP!, {lr, r3-r12}
+	BX lr
 
 Uart0Handler:
 	STMFD SP!, {lr, r0-r12}
-		;clear UART interrupt
+	;clear UART interrupt
 	MOV r4, #0xC000
 	MOVT r4, #0x4000
 	LDRB r1, [r4, #0x044]
@@ -88,7 +122,7 @@ Uart0Handler:
 	LDR r0, GAME_STATUS_PTR
 	LDRB r0,[r0]
 	CMP r0, #0
-	BNE gameRunning
+	BEQ gameRunning
 
 
 	MOV r4, #0x0000
@@ -140,8 +174,7 @@ not0:
 	MOV r4, #0x0000
 	MOVT r4, #0x4003
 
-	LDMFD SP!, {lr, r0-r12}
-	BX lr
+	B notValidKey
 
 gameRunning:
 
@@ -202,14 +235,14 @@ notD:
 	LDR r1, [r4, #0xC] ;enable timer 0
 	EOR r1, r1, #0x1
 	STR r1, [r4, #0xC]
-
-notValidKey:
 	BL output_string
+notValidKey:
+
 
 	LDMFD SP!, {lr, r0-r12}
 	BX lr
 
-Timer0Handler:
+Timer0Handler: ;timer for game clock (1 second per cycle)
 	STMFD SP!, {lr, r3-r5, r7-r11}
 	MOV r4, #0
 	MOVT r4, #0x4003
@@ -217,26 +250,23 @@ Timer0Handler:
 	LDRB r1, [r4, #0x24]
 	ORR r1, r1, #0x1
 	STRB r1, [r4, #0x24]
+	LDR r4, GAME_STATUS_PTR
+	LDRB r1, [r4]
+	CMP r1, #0x0
+	BEQ noMusic
+
 	BL nextNote
+noMusic:
 
-	; handle game stuff here:
 
-	;TODO: update frog position, flip boardupdate bit, shift game rows if boardupdate is true, redraw game board
 
-	; if valid position for frog, continue and add to score, else subtract life
 
-	;if life == 0, set game over to true
 
-	;is position a fly? if so, add to score and replace fly
-
-	; is a winning tile? add to score, add to win counter, restart game
-
-		; if win counter == 3, increase clock period by .05 seconds
 	LDMFD SP!, {lr, r3-r5, r7-r11}
 	BX lr
 
 
-Timer1Handler:
+Timer1Handler: ; controls speaker pitch
 	STMFD SP!, {lr, r0-r12}
 	MOV r4, #0x1000
 	MOVT r4, #0x4003
@@ -262,6 +292,10 @@ Timer2Handler: ;Main handler
 	LDRB r1, [r4, #0x24]
 	ORR r1, r1, #0x1
 	STRB r1, [r4, #0x24]
+	MOV r0, #0xC
+	BL output_character
+	LDR r4, boardPtr
+	BL output_string
 
 	; handle game stuff here:
 
@@ -277,6 +311,10 @@ Timer2Handler: ;Main handler
 	; is a winning tile? add to score, add to win counter, restart game
 
 		; if win counter == 3, increase clock period by .05 seconds
+
+notePlayed:
+
+
 	LDMFD SP!, {lr, r1-r5, r7-r11}
 	BX lr
 
@@ -445,8 +483,12 @@ timerOff:
 
 redrawBoard:	;shifts strings and redraws board
 	STMFD SP!, {lr, r0-r12}
+	LDR r4, BOARD_UPDATE_PTR
+	LDRB r0, [r4]
+	CMP r0, #0
+	BNE noBoardUpdate
 	LDR r4, boardPtr
-	BL output_string
+
 	MOV r0, #3
 	MOV r1, #7
 	MOV r2, #1
@@ -463,8 +505,13 @@ redrawBoard:	;shifts strings and redraws board
 	MOV r2, #1
 	BL shiftSetOfRows
 	;check for conflicts
+	;TODO
+
 	MOV r3, #0x26
 	STRB r3,[r4,r7]
+
+noBoardUpdate:
+	LDR r4, boardPtr
 	BL output_string
 	LDMFD SP!, {lr, r0-r12}
 	BX lr
@@ -473,29 +520,231 @@ shiftSetOfRows:	;r0 starting row
 				;r1 ending row
 				;r2 set shift pattern
 	STMFD SP!, {lr, r3-r12}
-	MOV r3, r0
+	MOV r4, r0
+	LDR r10, boardPtr
 	MOV r9, r1
 	MOV r5, #49
 	ADD r8, r2, #1
+
 shiftLines:
-	CMP r3, #7
-	BEQ shiftLines
-	MUL r7, r3, r5
-	MOV r0, r4
+	MOV r0, r10
+	MUL r7, r4, r5
 	ADD r0, r0, r7
 	ADD r0, r0, #1
 	MOV r1, #45
+
+	STMFD SP!, {lr, r0-r2}
+	MOV r0, #1
+	CMP r4, #7
+	BGT notWaterSection
+	MOV r0, #0
+notWaterSection:
+	MOV r1, r4
+	BL generateRandomCharacter
+	MOV r3, r0
+	LDMFD SP!, {lr, r0-r2}
+
+	STMFD SP!, {r0-r3}
 	BL shift_string
+	LDMFD SP!, {r0-r3}
 	MOV r1, r8
 	MOV r0, #2
 	BL div_and_mod
 	MOV r2, r0
 	ADD r8, r8, #1
-	ADD r3, r3, #1
-	CMP r3, r9
+	ADD r4, r4, #1
+	CMP r4, r9
 	BNE shiftLines
 	LDMFD SP!, {lr, r3-r12}
 	BX lr
+
+generateRandomCharacter:	;r0 if 0 then water, if 1 then road
+							;r1 nth row
+							;r2 spawn direction
+	STMFD SP!, {lr, r3-r12}
+	MOV r3, #49
+	MOV r4, r0
+	MUL r1, r1, r3
+	CMP r2, #0 ;if spawn direction left
+	BNE isRight
+	MOV r0,#0
+	MOV r2,#0
+	ADD r0, r1, #45	;first place in spawn location
+	MOV r1, #-1	;sixth place in spawn location
+	CMP r4, #0
+	BNE isNotWaterLeft
+	BL spawnWaterTile
+	LDMFD SP!, {lr, r3-r12}
+	BX lr
+isNotWaterLeft:
+	BL spawnRoadTile
+	LDMFD SP!, {lr, r3-r12}
+	BX lr
+
+isRight:
+	MOV r0,#0
+	MOV r2,#1
+	ADD r0, r1, #1	;first place in spawn location
+	MOV r1,#1
+	CMP r4, #0
+	BNE isNotWaterRight
+	BL spawnWaterTile
+	LDMFD SP!, {lr, r3-r12}
+	BX lr
+isNotWaterRight:
+	BL spawnRoadTile
+	LDMFD SP!, {lr, r3-r12}
+	BX lr
+
+spawnWaterTile:	;r0 beginning spawn location
+				;r1 spawn direction left=-1, right=1
+	STMFD SP!, {lr, r2-r12}
+	MOV r4, r0
+	MOV r5, r1
+	MOV r2, #0x4C
+	MOV r3, #0x6
+	BL checkForSpawn
+	CMP r0, #0x4C
+	BNE notLogSpawn
+	LDMFD SP!, {lr, r2-r12}
+	BX lr
+notLogSpawn:
+	MOV r0, r4
+	MOV r1, r5
+	MOV r2, #0x41
+	MOV r3, #0x0
+	BL checkForSpawn
+	CMP r0, #0x41
+	BNE notAlligatorHeadSpawn
+	MOV r0, #0x61
+	LDMFD SP!, {lr, r2-r12}
+	BX lr
+notAlligatorHeadSpawn:
+	MOV r0, r4
+	MOV r1, r5
+	MOV r2, #0x61
+	MOV r3, #0x5
+	BL checkForSpawn
+	CMP r0, #0x61
+	BNE notAlligatorBodySpawn
+	MOV r0, #0x61
+	LDMFD SP!, {lr, r2-r12}
+	BX lr
+notAlligatorBodySpawn:
+	MOV r0, r4
+	MOV r1, r5
+	MOV r2, #0x54
+	MOV r3, #0x2
+	BL checkForSpawn
+	CMP r0, #0x54
+	BNE notTurtleSpawn
+	LDMFD SP!, {lr, r2-r12}
+	BX lr
+notTurtleSpawn:
+
+	;at this point all possible continuating spawning possiblities are false
+	MOV r0,#7
+	BL rng
+	CMP r0, #0x0 ;if random number is 0, obstical needs to be created
+	BNE isWaterTile
+	MOV r0,#4
+	BL rng
+	CMP r0, #0x0 ;if random number is 1, Log tile
+	BNE notLogTile
+	MOV r0, #0x4C
+	LDMFD SP!, {lr, r2-r12}
+	BX lr
+notLogTile:
+	CMP r0, #0x1 ;if random number is 2, alligator tile
+	BNE notAlligatorTile
+	MOV r0, #0x41
+	LDMFD SP!, {lr, r2-r12}
+	BX lr
+notAlligatorTile:
+	CMP r0, #0x2 ;if random number is 3, Turtle
+	BNE notTurtleTile
+	MOV r0, #0x54
+	LDMFD SP!, {lr, r2-r12}
+	BX lr
+notTurtleTile:
+	CMP r0, #0x3 ;if random number is 4, lilypad
+	BNE notLilypadTile
+	MOV r0, #0x4F
+notLilypadTile:
+	LDMFD SP!, {lr, r2-r12}
+	BX lr
+
+isWaterTile:
+	MOV r0, #0x7E
+
+	LDMFD SP!, {lr, r2-r12}
+	BX lr
+
+
+spawnRoadTile:	;r0 beginning spawn location
+				;r1 spawn direction left=-1, right=1
+	STMFD SP!, {lr, r2-r12}
+	MOV r2, #0x23
+	MOV r3, #0x4
+	BL checkForSpawn
+	CMP r0, #0x23
+	BNE notTruckSpawn
+	LDMFD SP!, {lr, r2-r12}
+	BX lr
+notTruckSpawn:
+	MOV r0,#7
+	BL rng
+	CMP r0, #0x0 ;if random number is 0, obstical needs to be created
+	BNE isRoadTile
+	MOV r0,#2
+	BL rng
+	CMP r0, #0x0 ;if random number is 1, truck
+	BNE notTruckTile
+	MOV r0, #0x23
+	LDMFD SP!, {lr, r2-r12}
+	BX lr
+notTruckTile:
+	CMP r0, #0x1 ;if random number is 2, car
+	BNE notCarTile
+	MOV r0, #0x43
+notCarTile:
+	LDMFD SP!, {lr, r2-r12}
+	BX lr
+isRoadTile:
+	MOV r0, #0x20
+	LDMFD SP!, {lr, r2-r12}
+	BX lr
+
+checkForSpawn:	;r0 beginning spawn location
+				;r1 spawn direction left=-1, right=1
+				;r2 search value
+				;r3 max length
+	STMFD SP!, {lr, r4-r12}
+	LDR r4, boardPtr
+	MOV r5,#0
+countSpawn:
+	LDRB r7, [r4,r0]
+	CMP r7, r2
+	BNE countDone
+	ADD r5, r5, #1
+	ADD r0, r0, r1
+	B countSpawn
+
+countDone:
+	MOV r0, r3
+	MOV r1, r5
+	BL div_and_mod
+	CMP r0, #0
+	BEQ notSearchValue
+	MOV r0, r2
+	LDMFD SP!, {lr, r4-r12}
+	BX lr
+notSearchValue:
+	MOV r0, #0x0
+	LDMFD SP!, {lr, r4-r12}
+	BX lr
+
+
 
 check_valid_location:
 	STMFD SP!, {lr, r3-r12}
