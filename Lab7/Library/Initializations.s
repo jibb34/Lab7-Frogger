@@ -261,12 +261,12 @@ GPIO_init:		;initializes GPIO
 	STRB r1, [r7, #0x51C] ; enables RGB LED pins to digital
 
 	;Port C
-	LDRB r1, [r10, #0x400]
-	ORR r1, #0x10
-	STRB r1, [r10, #0x400]; set speaker pin to output
-	LDRB r1, [r10, #0x51C]
-	ORR r1, #0x10
-	STRB r1, [r10, #0x51C] ; enables speaker pin to digital
+;	LDRB r1, [r10, #0x400]
+;	ORR r1, #0x10
+	;STRB r1, [r10, #0x400]; set speaker pin to output
+	;LDRB r1, [r10, #0x51C]
+	;ORR r1, #0x10
+	;STRB r1, [r10, #0x51C] ; enables speaker pin to digital
 
 	;Port D init
 	LDRB r1, [r8, #0x51C]
@@ -394,13 +394,13 @@ uart_init:
     ;(*((volatile uint32_t *)(0x4000C024))) |= 8;
     MOV r0, #0xC024		;set the second half of r0 to the second half of the hex value a above
     MOVT r0, #0x4000	;set the first half of r0 to the first half of the hex value a above
-    MOV r1,#1			;set r1 to integer above
+    MOV r1,#8			;set r1 to integer above
     BL LOAD_SETTINGS	;do load procedure
     ;/* Set UART0_FBRD_R for 57600 baud */
     ;(*((volatile uint32_t *)(0x4000C028))) |= 5;
     MOV r0, #0xC028		;set the second half of r0 to the second half of the hex value a above
     MOVT r0, #0x4000	;set the first half of r0 to the first half of the hex value a above
-    MOV r1,#0		;set r1 to integer above
+    MOV r1,#44		;set r1 to integer above
     BL LOAD_SETTINGS	;do load procedure
     ;/* Use System Clock */
     ;(*((volatile uint32_t *)(0x4000CFC8))) |= 0;

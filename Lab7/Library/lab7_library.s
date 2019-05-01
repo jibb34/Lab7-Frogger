@@ -5,17 +5,17 @@ m2: .string "--D4-RRA4-D4---D5---E5-E4-RRA4-E4---E5---g5-g4-RRA5---g4-g5---E5-E4
 board0: .string  "|---------------------------------------------|", 0xD, 0xA
 board1: .string  "|*********************************************|", 0xD, 0xA
 board2: .string  "|*****     *****     *****     *****     *****|", 0xD, 0xA
-board3: .string  "|~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~|", 0xD, 0xA
-board4: .string  "|~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~|", 0xD, 0xA
-board5: .string  "|~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~|", 0xD, 0xA
-board6: .string  "|~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~|", 0xD, 0xA
+board3: .string  "|~~~~~~~~~~~~~~~~~~~~~~9~~~~~~~~~~~~~~~~~~~~~~|", 0xD, 0xA
+board4: .string  "|~~~~~~~~~~~~~~~~~~~~~~8~~~~~~~~~~~~~~~~~~~~~~|", 0xD, 0xA
+board5: .string  "|~~~~~~~~~~~~~~~~~~~~~~7~~~~~~~~~~~~~~~~~~~~~~|", 0xD, 0xA
+board6: .string  "|~~~~~~~~~~~~~~~~~~~~~~6~~~~~~~~~~~~~~~~~~~~~~|", 0xD, 0xA
 board7: .string  "|.............................................|", 0xD, 0xA
-board8: .string  "|                                             |", 0xD, 0xA
-board9: .string  "|                                             |", 0xD, 0xA
-board10: .string "|                                             |", 0xD, 0xA
-board11: .string "|                                             |", 0xD, 0xA
-board12: .string "|                                             |", 0xD, 0xA
-board13: .string "|                                             |", 0xD, 0xA
+board8: .string  "|                      5                      |", 0xD, 0xA
+board9: .string  "|                      5                      |", 0xD, 0xA
+board10: .string "|                      4                      |", 0xD, 0xA
+board11: .string "|                      3                      |", 0xD, 0xA
+board12: .string "|                      2                      |", 0xD, 0xA
+board13: .string "|                      1                      |", 0xD, 0xA
 board14: .string "|......................&......................|", 0xD, 0xA
 board15: .string "|---------------------------------------------|", 0xD, 0xA, 0x0
 language: .string "1234567890qwertyuiopasdfghjklzxcvbnm!@#$%^&*()_", 0xD, 0xA, 0
@@ -210,22 +210,33 @@ notD:
 	;calculate new frog location
 	ADD r5, r10, r3
 	;get value at new frog location
-	LDRB r7,[r4,r5]
+	LDRB r2,[r4,r5]
 	;check if its a valid postion
+	BL check_valid_location
 	;replace frog with prevous value
 	LDR r8, previousFrogValuePtr
 	LDR r11, [r8]
 	STRB r11, [r4,r10]
+
+	CMP r0, #0
+	BNE notHittingObstacle
+
+	BL resetFrog
+	B hittingObstacle
+notHittingObstacle:
+
 	;save value at new frog location to previousFrogValue
-	STR r7,[r8]
+	STR r2,[r8]
 	;set previousFrogLocation to frogLocation
 	LDR r8, previousFrogLocationPtr
 	STR r10,[r8]
 	;set new frog location to frog location
 	STR r5, [r9]
 	;store frog in new location
-	MOV r7,#0x26
-	STRB r7,[r4,r5]
+	MOV r2,#0x26
+	STRB r2,[r4,r5]
+
+hittingObstacle:
 
 	MOV r2, #0x3800
 	MOVT r2, #0x1
@@ -235,7 +246,6 @@ notD:
 	LDR r1, [r4, #0xC] ;enable timer 0
 	EOR r1, r1, #0x1
 	STR r1, [r4, #0xC]
-	BL output_string
 notValidKey:
 
 
@@ -250,6 +260,15 @@ Timer0Handler: ;timer for game clock (1 second per cycle)
 	LDRB r1, [r4, #0x24]
 	ORR r1, r1, #0x1
 	STRB r1, [r4, #0x24]
+
+	MOV r0, #-1
+	MOV r1, #-1
+	MOV r2, #-1
+	BL update_game_information
+	CMP r0, #0
+	BEQ gameNotStarted
+
+gameNotStarted:
 	LDR r4, GAME_STATUS_PTR
 	LDRB r1, [r4]
 	CMP r1, #0x0
@@ -292,14 +311,59 @@ Timer2Handler: ;Main handler
 	LDRB r1, [r4, #0x24]
 	ORR r1, r1, #0x1
 	STRB r1, [r4, #0x24]
-	MOV r0, #0xC
-	BL output_character
+
+	LDR r4, BOARD_UPDATE_PTR
+	LDRB r0, [r4]
 	LDR r4, boardPtr
-	BL output_string
+  	CMP r0, #0
+	BNE noWaterUpdate
 
-	; handle game stuff here:
+	STMFD SP!, {lr, r0-r3}
+	MOV r0, #3
+	MOV r1, #7
+	MOV r2, #1
+	MOV r3, #0
+	BL shiftSetOfRows
+	LDMFD SP!, {lr, r0-r3}
+
+noWaterUpdate:
+	BL removeFrog
+
+	CMP r0, #0
+	BNE noTruckUpdate
+	MOV r0, #8
+	MOV r1, #9
+	MOV r2, #1
+	MOV r8, #0
+	MOV r3, #1
+truckLinesFinished:
+	STMFD SP!, {lr, r0-r3}
+;	BL shiftSetOfRows
+	LDMFD SP!, {lr, r0-r3}
+	ADD r0, r0, #2
+	ADD r1, r1, #2
+	ADD r8, r8, #1
+	CMP r8, #3
+	BNE truckLinesFinished
+noTruckUpdate:
 
 
+	MOV r0, #9
+	MOV r1, #10
+	MOV r2, #0
+	MOV r8, #0
+	MOV r3, #2
+carLinesFinished:
+	STMFD SP!, {lr, r0-r3}
+	;BL shiftSetOfRows
+	LDMFD SP!, {lr, r0-r3}
+	ADD r0, r0, #2
+	ADD r1, r1, #2
+	ADD r8, r8, #1
+	CMP r8, #3
+	BNE carLinesFinished
+	BL putBackFrog
+	BL redrawBoard
 	;TODO: update frog position, flip boardupdate bit, shift game rows if boardupdate is true, redraw game board
 
 	; if valid position for frog, continue and add to score, else subtract life
@@ -312,8 +376,22 @@ Timer2Handler: ;Main handler
 
 		; if win counter == 3, increase clock period by .05 seconds
 
-notePlayed:
 
+	MOV r0, #0xFFFF
+	CMP r0, #0x0
+;stabliliztion:
+	;flip board update bit
+	LDR r4, BOARD_UPDATE_PTR
+	LDRB r0, [r4]
+	CMP r0,#1
+	BNE flipBoard
+	MOV r0,#0
+	STRB r0, [r4]
+	LDMFD SP!, {lr, r1-r5, r7-r11}
+	BX lr
+flipBoard:
+	MOV r0,#1
+	STRB r0, [r4]
 
 	LDMFD SP!, {lr, r1-r5, r7-r11}
 	BX lr
@@ -483,34 +561,16 @@ timerOff:
 
 redrawBoard:	;shifts strings and redraws board
 	STMFD SP!, {lr, r0-r12}
-	LDR r4, BOARD_UPDATE_PTR
-	LDRB r0, [r4]
-	CMP r0, #0
-	BNE noBoardUpdate
-	LDR r4, boardPtr
+	ADD r6, r6, #0x1
+	MOV r0, #0x1B
+	BL output_character ; clears screen
+	ADD r6, r6, #0x1
+	MOV r0, #0x5B
+	BL output_character ; clears screen
+	ADD r6, r6, #0x1
+	MOV r0, #0x48
+	BL output_character ; clears screen
 
-	MOV r0, #3
-	MOV r1, #7
-	MOV r2, #1
-	BL shiftSetOfRows
-
-	LDR r5, frogLocationPtr
-	LDR r7,[r5]
-	LDR r3, previousFrogValuePtr
-	LDR r3, [r3]
-	STRB r3,[r4,r7]
-
-	MOV r0, #8
-	MOV r1, #14
-	MOV r2, #1
-	BL shiftSetOfRows
-	;check for conflicts
-	;TODO
-
-	MOV r3, #0x26
-	STRB r3,[r4,r7]
-
-noBoardUpdate:
 	LDR r4, boardPtr
 	BL output_string
 	LDMFD SP!, {lr, r0-r12}
@@ -519,8 +579,10 @@ noBoardUpdate:
 shiftSetOfRows:	;r0 starting row
 				;r1 ending row
 				;r2 set shift pattern
-	STMFD SP!, {lr, r3-r12}
+				;r3 set line type, 0 for water, 1 for trucks and 2 for cars
+	STMFD SP!, {lr, r4-r12}
 	MOV r4, r0
+	MOV r11, r3
 	LDR r10, boardPtr
 	MOV r9, r1
 	MOV r5, #49
@@ -533,16 +595,12 @@ shiftLines:
 	ADD r0, r0, #1
 	MOV r1, #45
 
-	STMFD SP!, {lr, r0-r2}
-	MOV r0, #1
-	CMP r4, #7
-	BGT notWaterSection
-	MOV r0, #0
-notWaterSection:
+	STMFD SP!, {r0-r2}
+	MOV r0, r11
 	MOV r1, r4
 	BL generateRandomCharacter
 	MOV r3, r0
-	LDMFD SP!, {lr, r0-r2}
+	LDMFD SP!, {r0-r2}
 
 	STMFD SP!, {r0-r3}
 	BL shift_string
@@ -555,16 +613,17 @@ notWaterSection:
 	ADD r4, r4, #1
 	CMP r4, r9
 	BNE shiftLines
-	LDMFD SP!, {lr, r3-r12}
+	LDMFD SP!, {lr, r4-r12}
 	BX lr
 
-generateRandomCharacter:	;r0 if 0 then water, if 1 then road
+generateRandomCharacter:	;r0 if 0 then water, if 1 then truck, if 2 then car
 							;r1 nth row
 							;r2 spawn direction
 	STMFD SP!, {lr, r3-r12}
-	MOV r3, #49
+	MOV r7, r1
+	MOV r5, #49
 	MOV r4, r0
-	MUL r1, r1, r3
+	MUL r1, r1, r5
 	CMP r2, #0 ;if spawn direction left
 	BNE isRight
 	MOV r0,#0
@@ -573,10 +632,22 @@ generateRandomCharacter:	;r0 if 0 then water, if 1 then road
 	MOV r1, #-1	;sixth place in spawn location
 	CMP r4, #0
 	BNE isNotWaterLeft
+
+	STMFD SP!, {r0}
+	BL checkForFrog
+	CMP r0, r7
+	BNE frogNotInWaterSectionLeft
+	MOV r0, r1
+	BL shiftFrog
+frogNotInWaterSectionLeft:
+	LDMFD SP!, {r0}
+
+
 	BL spawnWaterTile
 	LDMFD SP!, {lr, r3-r12}
 	BX lr
 isNotWaterLeft:
+	MOV r2, r4
 	BL spawnRoadTile
 	LDMFD SP!, {lr, r3-r12}
 	BX lr
@@ -588,10 +659,21 @@ isRight:
 	MOV r1,#1
 	CMP r4, #0
 	BNE isNotWaterRight
+
+	STMFD SP!, {r0}
+	BL checkForFrog
+	CMP r0, r7
+	BNE frogNotInWaterSectionRight
+	MOV r0, r1
+	BL shiftFrog
+frogNotInWaterSectionRight:
+	LDMFD SP!, {r0}
+
 	BL spawnWaterTile
 	LDMFD SP!, {lr, r3-r12}
 	BX lr
 isNotWaterRight:
+	MOV r2, r4
 	BL spawnRoadTile
 	LDMFD SP!, {lr, r3-r12}
 	BX lr
@@ -641,6 +723,12 @@ notAlligatorBodySpawn:
 	LDMFD SP!, {lr, r2-r12}
 	BX lr
 notTurtleSpawn:
+	;check if space is needed
+	MOV r0, r4
+	LDR r4, boardPtr
+	LDRB r1, [r4,r0]
+	CMP r1, #0x7E
+	BNE isWaterTile
 
 	;at this point all possible continuating spawning possiblities are false
 	MOV r0,#7
@@ -683,36 +771,44 @@ isWaterTile:
 
 spawnRoadTile:	;r0 beginning spawn location
 				;r1 spawn direction left=-1, right=1
-	STMFD SP!, {lr, r2-r12}
+				;r2 1 if truck, 2 if car
+	STMFD SP!, {lr, r3-r12}
+	MOV r7, r0
+	MOV r4,r2
 	MOV r2, #0x23
 	MOV r3, #0x4
 	BL checkForSpawn
 	CMP r0, #0x23
 	BNE notTruckSpawn
-	LDMFD SP!, {lr, r2-r12}
+	LDMFD SP!, {lr, r3-r12}
 	BX lr
 notTruckSpawn:
+;check if space is needed
+	LDR r5, boardPtr
+	LDRB r1, [r5,r7]
+	CMP r1, #0x20
+	BNE isRoadTile
+
 	MOV r0,#7
 	BL rng
 	CMP r0, #0x0 ;if random number is 0, obstical needs to be created
 	BNE isRoadTile
-	MOV r0,#2
-	BL rng
-	CMP r0, #0x0 ;if random number is 1, truck
+
+	CMP r4, #1
 	BNE notTruckTile
 	MOV r0, #0x23
-	LDMFD SP!, {lr, r2-r12}
+	LDMFD SP!, {lr, r3-r12}
 	BX lr
 notTruckTile:
-	CMP r0, #0x1 ;if random number is 2, car
+	CMP r4, #2 ;if random number is 2, car
 	BNE notCarTile
 	MOV r0, #0x43
 notCarTile:
-	LDMFD SP!, {lr, r2-r12}
+	LDMFD SP!, {lr, r3-r12}
 	BX lr
 isRoadTile:
 	MOV r0, #0x20
-	LDMFD SP!, {lr, r2-r12}
+	LDMFD SP!, {lr, r3-r12}
 	BX lr
 
 checkForSpawn:	;r0 beginning spawn location
@@ -720,8 +816,8 @@ checkForSpawn:	;r0 beginning spawn location
 				;r2 search value
 				;r3 max length
 	STMFD SP!, {lr, r4-r12}
+	MOV r5, #0
 	LDR r4, boardPtr
-	MOV r5,#0
 countSpawn:
 	LDRB r7, [r4,r0]
 	CMP r7, r2
@@ -794,6 +890,7 @@ check_valid_location:
 
 
 	LDMFD SP!, {lr, r3-r12}
+	BX lr
 
 output_7_seg: ;puts text on the screen take what ever value is in r0 and put it on the screen
 	STMFD SP!,{lr, r1-r12}	; Store register lr on stack
@@ -809,7 +906,84 @@ NOOUTPUT7SEG:
  	STRB r0,[r1, #0x8]			;if 0 store byte in transmit register
 	LDMFD sp!, {lr, r1-r12}
 	BX lr
+putBackFrog:
+	STMFD SP!,{lr, r0-r12}
+	LDR r5, frogLocationPtr
+	LDR r7,[r5]
+	MOV r3, #0x26
+	LDRB r2,[r4,r7]
+	BL check_valid_location
+	CMP r0, #0
+	BNE validSpace
+	;frog is killed actions taken here
+	;decriment lives/points here
 
+	BL resetFrog
 
+	LDR r7, frogLocationPtr
+	LDR r7,[r7]
+	;move to spawn location
+validSpace:
+	STRB r3,[r4,r7]
+	LDMFD sp!, {lr, r0-r12}
+	BX lr
+removeFrog:
+	STMFD SP!,{lr, r0-r12}
+	LDR r5, frogLocationPtr
+	LDR r7,[r5]
+	LDR r3, previousFrogValuePtr
+	LDR r3, [r3]
+	STRB r3,[r4,r7]
+	LDMFD sp!, {lr, r0-r12}
+	BX lr
+
+resetFrog:
+	STMFD SP!,{lr, r0-r12}
+	;reset prevousFrogLocation
+	LDR r7, previousFrogLocationPtr
+	MOV r1, #0x41D
+	STR r1,[r7]
+	;reset previosFrogValue
+	LDR r7, previousFrogValuePtr
+	MOV r1, #0x2E
+	STR r1,[r7]
+	;reset frogLocation
+	LDR r7, frogLocationPtr
+	MOV r1, #0x2C5
+	STR r1,[r7]
+	LDMFD sp!, {lr, r0-r12}
+	BX lr
+checkForFrog:
+	STMFD SP!,{lr, r1-r12}
+	MOV r0, #-1
+	LDR r5, boardPtr
+	LDR r3, frogLocationPtr
+	LDR r2, [r3]
+	ADD r2, r2, r5
+checkRowForFrog:
+	CMP r5, r2
+	BGE frogFound
+	ADD r5, r5, #49
+	ADD r0, r0, #1
+	B checkRowForFrog
+frogFound:
+	LDMFD sp!, {lr, r1-r12}
+	BX lr
+shiftFrog:	;r0 -1 for left shift, 1 for right shift
+	STMFD SP!,{lr, r1-r12}
+	LDR r3, frogLocationPtr
+	LDR r5, [r3]
+	LDR r4, boardPtr
+	ADD r5, r5, r0
+	LDRB r2, [r4,r5]
+	CMP r2, #0x7C
+	BNE notEndOfBoard
+	BL resetFrog
+	LDMFD sp!, {lr, r1-r12}
+	BX lr
+notEndOfBoard:
+	STR r5,[r3]
+	LDMFD sp!, {lr, r1-r12}
+	BX lr
 
 .end

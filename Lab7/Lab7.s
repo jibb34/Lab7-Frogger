@@ -152,8 +152,10 @@ startGame:
 	LDR r1, [r4, #0xC] ;toggle timer off (turn off music)
 	BIC r1, r1, #0x1
 	STR r1, [r4, #0xC]
-
 	BL timer2_interrupt_init
+	ADD r6, r6, #0x1
+	MOV r0, #0xC
+	BL output_character ; clears screen
 
 infLoop:
 
