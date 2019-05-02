@@ -1,31 +1,31 @@
 ******************************************************************************
                   TI ARM Linker PC v18.1.4                     
 ******************************************************************************
->> Linked Wed May  1 19:51:43 2019
+>> Linked Thu May  2 17:54:44 2019
 
 OUTPUT FILE NAME:   <Lab7.out>
-ENTRY POINT SYMBOL: "_c_int00_noargs"  address: 000014e1
+ENTRY POINT SYMBOL: "_c_int00_noargs"  address: 00001659
 
 
 MEMORY CONFIGURATION
 
          name            origin    length      used     unused   attr    fill
 ----------------------  --------  ---------  --------  --------  ----  --------
-  FLASH                 00000000   00040000  0000182c  0003e7d4  R  X
-  SRAM                  20000000   00008000  00000a1b  000075e5  RW X
+  FLASH                 00000000   00040000  0000199c  0003e664  R  X
+  SRAM                  20000000   00008000  00000a49  000075b7  RW X
 
 
 SEGMENT ALLOCATION MAP
 
 run origin  load origin   length   init length attrs members
 ----------  ----------- ---------- ----------- ----- -------
-00000000    00000000    00001830   00001830    r-x
+00000000    00000000    000019a0   000019a0    r-x
   00000000    00000000    0000026c   0000026c    r-- .intvecs
-  0000026c    0000026c    000012d8   000012d8    r-x .text
-  00001548    00001548    000002e8   000002e8    r-- .cinit
-20000000    20000000    00000a20   00000000    rw-
-  20000000    20000000    0000081b   00000000    rw- .data
-  20000820    20000820    00000200   00000000    rw- .stack
+  0000026c    0000026c    00001450   00001450    r-x .text
+  000016c0    000016c0    000002e0   000002e0    r-- .cinit
+20000000    20000000    00000a50   00000000    rw-
+  20000000    20000000    00000849   00000000    rw- .data
+  20000850    20000850    00000200   00000000    rw- .stack
 
 
 SECTION ALLOCATION MAP
@@ -36,41 +36,39 @@ section   page    origin      length       input sections
 .intvecs   0    00000000    0000026c     
                   00000000    0000026c     tm4c123gh6pm_startup_ccs.obj (.intvecs)
 
-.text      0    0000026c    000012d8     
-                  0000026c    0000083a     lab7_library.obj (.text)
-                  00000aa6    00000476     Initializations.obj (.text)
-                  00000f1c    0000016e     tables.obj (.text)
-                  0000108a    00000002     --HOLE-- [fill = 0]
-                  0000108c    0000010a     Lab7.obj (.text)
-                  00001196    000000fc     uart.obj (.text)
-                  00001292    0000009c     rtsv7M4_T_le_v4SPD16_eabi.lib : memcpy_t2.asm.obj (.text)
-                  0000132e    00000084     GPIO.obj (.text)
-                  000013b2    00000082     math.obj (.text)
-                  00001434    00000068     rtsv7M4_T_le_v4SPD16_eabi.lib : copy_decompress_lzss.c.obj (.text:decompress:lzss:__TI_decompress_lzss)
-                  0000149c    00000044                                   : autoinit.c.obj (.text:__TI_auto_init_nobinit_nopinit:__TI_auto_init_nobinit_nopinit)
-                  000014e0    00000038                                   : boot_cortex_m.c.obj (.text:_c_int00_noargs:_c_int00_noargs)
-                  00001518    0000000e                                   : copy_decompress_none.c.obj (.text:decompress:none:__TI_decompress_none)
-                  00001526    0000000c     tm4c123gh6pm_startup_ccs.obj (.text)
-                  00001532    0000000a     main.obj (.text)
-                  0000153c    00000004     rtsv7M4_T_le_v4SPD16_eabi.lib : pre_init.c.obj (.text:_system_pre_init)
-                  00001540    00000004                                   : exit.c.obj (.text:abort:abort)
+.text      0    0000026c    00001450     
+                  0000026c    0000093c     lab7_library.obj (.text)
+                  00000ba8    00000476     Initializations.obj (.text)
+                  0000101e    0000016e     tables.obj (.text)
+                  0000118c    0000010a     Lab7.obj (.text)
+                  00001296    000000fc     uart.obj (.text)
+                  00001392    000000fa     math.obj (.text)
+                  0000148c    0000009c     rtsv7M4_T_le_v4SPD16_eabi.lib : memcpy_t2.asm.obj (.text)
+                  00001528    00000084     GPIO.obj (.text)
+                  000015ac    00000068     rtsv7M4_T_le_v4SPD16_eabi.lib : copy_decompress_lzss.c.obj (.text:decompress:lzss:__TI_decompress_lzss)
+                  00001614    00000044                                   : autoinit.c.obj (.text:__TI_auto_init_nobinit_nopinit:__TI_auto_init_nobinit_nopinit)
+                  00001658    00000038                                   : boot_cortex_m.c.obj (.text:_c_int00_noargs:_c_int00_noargs)
+                  00001690    0000000e                                   : copy_decompress_none.c.obj (.text:decompress:none:__TI_decompress_none)
+                  0000169e    0000000c     tm4c123gh6pm_startup_ccs.obj (.text)
+                  000016aa    0000000a     main.obj (.text)
+                  000016b4    00000004     rtsv7M4_T_le_v4SPD16_eabi.lib : pre_init.c.obj (.text:_system_pre_init)
+                  000016b8    00000004                                   : exit.c.obj (.text:abort:abort)
 
-.cinit     0    00001548    000002e8     
-                  00001548    000002d5     (.cinit..data.load) [load image, compression = lzss]
-                  0000181d    00000003     --HOLE-- [fill = 0]
-                  00001820    00000008     (__TI_handler_table)
-                  00001828    00000008     (__TI_cinit_table)
+.cinit     0    000016c0    000002e0     
+                  000016c0    000002d0     (.cinit..data.load) [load image, compression = lzss]
+                  00001990    00000008     (__TI_handler_table)
+                  00001998    00000008     (__TI_cinit_table)
 
 .init_array 
 *          0    00000000    00000000     UNINITIALIZED
 
-.data      0    20000000    0000081b     UNINITIALIZED
-                  20000000    000004bd     lab7_library.obj (.data)
-                  200004bd    0000035e     Lab7.obj (.data)
+.data      0    20000000    00000849     UNINITIALIZED
+                  20000000    000004eb     lab7_library.obj (.data)
+                  200004eb    0000035e     Lab7.obj (.data)
 
-.stack     0    20000820    00000200     UNINITIALIZED
-                  20000820    00000004     rtsv7M4_T_le_v4SPD16_eabi.lib : boot_cortex_m.c.obj (.stack)
-                  20000824    000001fc     --HOLE--
+.stack     0    20000850    00000200     UNINITIALIZED
+                  20000850    00000004     rtsv7M4_T_le_v4SPD16_eabi.lib : boot_cortex_m.c.obj (.stack)
+                  20000854    000001fc     --HOLE--
 
 MODULE SUMMARY
 
@@ -84,14 +82,14 @@ MODULE SUMMARY
        Total:                         288    620       862    
                                                               
     .\Library\
-       lab7_library.obj               2106   0         1213   
+       lab7_library.obj               2364   0         1259   
        Initializations.obj            1142   0         0      
        tables.obj                     366    0         0      
        uart.obj                       252    0         0      
+       math.obj                       250    0         0      
        GPIO.obj                       132    0         0      
-       math.obj                       130    0         0      
     +--+------------------------------+------+---------+---------+
-       Total:                         4128   0         1213   
+       Total:                         4506   0         1259   
                                                               
     C:\ti\ccsv8\tools\compiler\ti-cgt-arm_18.1.4.LTS\lib\rtsv7M4_T_le_v4SPD16_eabi.lib
        memcpy_t2.asm.obj              156    0         0      
@@ -105,20 +103,20 @@ MODULE SUMMARY
        Total:                         406    0         0      
                                                               
        Stack:                         0      0         512    
-       Linker Generated:              0      741       0      
+       Linker Generated:              0      736       0      
     +--+------------------------------+------+---------+---------+
-       Grand Total:                   4822   1361      2587   
+       Grand Total:                   5200   1356      2633   
 
 
 LINKER GENERATED COPY TABLES
 
-__TI_cinit_table @ 00001828 records: 1, size/record: 8, table size: 8
-	.data: load addr=00001548, load size=000002d5 bytes, run addr=20000000, run size=0000081b bytes, compression=lzss
+__TI_cinit_table @ 00001998 records: 1, size/record: 8, table size: 8
+	.data: load addr=000016c0, load size=000002d0 bytes, run addr=20000000, run size=00000849 bytes, compression=lzss
 
 
 LINKER GENERATED HANDLER TABLE
 
-__TI_handler_table @ 00001820 records: 2, size/record: 4, table size: 8
+__TI_handler_table @ 00001990 records: 2, size/record: 4, table size: 8
 	index: 0, handler: __TI_decompress_lzss
 	index: 1, handler: __TI_decompress_none
 
@@ -127,72 +125,73 @@ GLOBAL SYMBOLS: SORTED ALPHABETICALLY BY Name
 
 address   name                          
 -------   ----                          
-00001541  C$$EXIT                       
-00000ccb  GPIO_init                     
-000010a1  Lab7                          
-00000541  PortAHandler                  
-00001527  ResetISR                      
-00000d5d  SPI_init                      
-000003f9  Timer0Handler                 
-00000439  Timer1Handler                 
-0000046b  Timer2Handler                 
-000002d9  Uart0Handler                  
-20000a20  __STACK_END                   
+000016b9  C$$EXIT                       
+00000dcd  GPIO_init                     
+000011a1  Lab7                          
+000005b5  PortAHandler                  
+0000169f  ResetISR                      
+00000e5f  SPI_init                      
+00000441  Timer0Handler                 
+000004a7  Timer1Handler                 
+000004d9  Timer2Handler                 
+0000030b  Uart0Handler                  
+20000a50  __STACK_END                   
 00000200  __STACK_SIZE                  
-20000a20  __STACK_TOP                   
-00001828  __TI_CINIT_Base               
-00001830  __TI_CINIT_Limit              
-00001820  __TI_Handler_Table_Base       
-00001828  __TI_Handler_Table_Limit      
-0000149d  __TI_auto_init_nobinit_nopinit
-00001435  __TI_decompress_lzss          
-00001519  __TI_decompress_none          
+20000a50  __STACK_TOP                   
+00001998  __TI_CINIT_Base               
+000019a0  __TI_CINIT_Limit              
+00001990  __TI_Handler_Table_Base       
+00001998  __TI_Handler_Table_Limit      
+00001615  __TI_auto_init_nobinit_nopinit
+000015ad  __TI_decompress_lzss          
+00001691  __TI_decompress_none          
 ffffffff  __TI_pprof_out_hndl           
 ffffffff  __TI_prof_data_size           
 ffffffff  __TI_prof_data_start          
 00000000  __TI_static_base__            
-00001293  __aeabi_memcpy                
-00001293  __aeabi_memcpy4               
-00001293  __aeabi_memcpy8               
+0000148d  __aeabi_memcpy                
+0000148d  __aeabi_memcpy4               
+0000148d  __aeabi_memcpy8               
 ffffffff  __binit__                     
 ffffffff  __c_args__                    
 UNDEFED   __mpu_init                    
-20000820  __stack                       
-000014e1  _c_int00_noargs               
+20000850  __stack                       
+00001659  _c_int00_noargs               
 UNDEFED   _system_post_cinit            
-0000153d  _system_pre_init              
-00001541  abort                         
+000016b5  _system_pre_init              
+000016b9  abort                         
 ffffffff  binit                         
-00000f1d  button_table                  
-00000949  checkForSpawn                 
-00000981  check_valid_location          
-000013cd  div_and_mod                   
-0000127b  fill_string                   
+0000101f  button_table                  
+00000a21  checkForSpawn                 
+00000a59  check_valid_location          
+00001415  convertToAscii                
+000013ad  div_and_mod                   
+0000137b  fill_string                   
 00000000  g_pfnVectors                  
-00000785  generateRandomCharacter       
-00001383  illuminate_LEDs               
-00001399  illuminate_RGB_LED            
-00000aa7  interrupt_init                
-00001533  main                          
-00001293  memcpy                        
-000009cb  output_7_seg                  
-000011dd  output_character              
-00001207  output_string                 
-00000fc3  playNote                      
-00001197  poll_character                
-000011bd  read_character                
-0000132f  read_from_keypad              
-000006ed  redrawBoard                   
-000013b3  rng                           
-00000723  shiftSetOfRows                
-00001231  shift_string                  
-000008ef  spawnRoadTile                 
-00000819  spawnWaterTile                
-00000b25  timer0_interrupt_init         
-00000baf  timer1_interrupt_init         
-00000c3d  timer2_interrupt_init         
-00000e51  uart_init                     
-000002a5  update_game_information       
+0000085d  generateRandomCharacter       
+0000157d  illuminate_LEDs               
+00001593  illuminate_RGB_LED            
+00000ba9  interrupt_init                
+000016ab  main                          
+0000148d  memcpy                        
+00000aa3  output_7_seg                  
+000012dd  output_character              
+00001307  output_string                 
+000010c5  playNote                      
+00001297  poll_character                
+000012bd  read_character                
+00001529  read_from_keypad              
+00000761  redrawBoard                   
+00001393  rng                           
+000007fb  shiftSetOfRows                
+00001331  shift_string                  
+000009c7  spawnRoadTile                 
+000008f1  spawnWaterTile                
+00000c27  timer0_interrupt_init         
+00000cb1  timer1_interrupt_init         
+00000d3f  timer2_interrupt_init         
+00000f53  uart_init                     
+000002d7  update_game_information       
 
 
 GLOBAL SYMBOLS: SORTED BY Symbol Address 
@@ -202,61 +201,62 @@ address   name
 00000000  __TI_static_base__            
 00000000  g_pfnVectors                  
 00000200  __STACK_SIZE                  
-000002a5  update_game_information       
-000002d9  Uart0Handler                  
-000003f9  Timer0Handler                 
-00000439  Timer1Handler                 
-0000046b  Timer2Handler                 
-00000541  PortAHandler                  
-000006ed  redrawBoard                   
-00000723  shiftSetOfRows                
-00000785  generateRandomCharacter       
-00000819  spawnWaterTile                
-000008ef  spawnRoadTile                 
-00000949  checkForSpawn                 
-00000981  check_valid_location          
-000009cb  output_7_seg                  
-00000aa7  interrupt_init                
-00000b25  timer0_interrupt_init         
-00000baf  timer1_interrupt_init         
-00000c3d  timer2_interrupt_init         
-00000ccb  GPIO_init                     
-00000d5d  SPI_init                      
-00000e51  uart_init                     
-00000f1d  button_table                  
-00000fc3  playNote                      
-000010a1  Lab7                          
-00001197  poll_character                
-000011bd  read_character                
-000011dd  output_character              
-00001207  output_string                 
-00001231  shift_string                  
-0000127b  fill_string                   
-00001293  __aeabi_memcpy                
-00001293  __aeabi_memcpy4               
-00001293  __aeabi_memcpy8               
-00001293  memcpy                        
-0000132f  read_from_keypad              
-00001383  illuminate_LEDs               
-00001399  illuminate_RGB_LED            
-000013b3  rng                           
-000013cd  div_and_mod                   
-00001435  __TI_decompress_lzss          
-0000149d  __TI_auto_init_nobinit_nopinit
-000014e1  _c_int00_noargs               
-00001519  __TI_decompress_none          
-00001527  ResetISR                      
-00001533  main                          
-0000153d  _system_pre_init              
-00001541  C$$EXIT                       
-00001541  abort                         
-00001820  __TI_Handler_Table_Base       
-00001828  __TI_CINIT_Base               
-00001828  __TI_Handler_Table_Limit      
-00001830  __TI_CINIT_Limit              
-20000820  __stack                       
-20000a20  __STACK_END                   
-20000a20  __STACK_TOP                   
+000002d7  update_game_information       
+0000030b  Uart0Handler                  
+00000441  Timer0Handler                 
+000004a7  Timer1Handler                 
+000004d9  Timer2Handler                 
+000005b5  PortAHandler                  
+00000761  redrawBoard                   
+000007fb  shiftSetOfRows                
+0000085d  generateRandomCharacter       
+000008f1  spawnWaterTile                
+000009c7  spawnRoadTile                 
+00000a21  checkForSpawn                 
+00000a59  check_valid_location          
+00000aa3  output_7_seg                  
+00000ba9  interrupt_init                
+00000c27  timer0_interrupt_init         
+00000cb1  timer1_interrupt_init         
+00000d3f  timer2_interrupt_init         
+00000dcd  GPIO_init                     
+00000e5f  SPI_init                      
+00000f53  uart_init                     
+0000101f  button_table                  
+000010c5  playNote                      
+000011a1  Lab7                          
+00001297  poll_character                
+000012bd  read_character                
+000012dd  output_character              
+00001307  output_string                 
+00001331  shift_string                  
+0000137b  fill_string                   
+00001393  rng                           
+000013ad  div_and_mod                   
+00001415  convertToAscii                
+0000148d  __aeabi_memcpy                
+0000148d  __aeabi_memcpy4               
+0000148d  __aeabi_memcpy8               
+0000148d  memcpy                        
+00001529  read_from_keypad              
+0000157d  illuminate_LEDs               
+00001593  illuminate_RGB_LED            
+000015ad  __TI_decompress_lzss          
+00001615  __TI_auto_init_nobinit_nopinit
+00001659  _c_int00_noargs               
+00001691  __TI_decompress_none          
+0000169f  ResetISR                      
+000016ab  main                          
+000016b5  _system_pre_init              
+000016b9  C$$EXIT                       
+000016b9  abort                         
+00001990  __TI_Handler_Table_Base       
+00001998  __TI_CINIT_Base               
+00001998  __TI_Handler_Table_Limit      
+000019a0  __TI_CINIT_Limit              
+20000850  __stack                       
+20000a50  __STACK_END                   
+20000a50  __STACK_TOP                   
 ffffffff  __TI_pprof_out_hndl           
 ffffffff  __TI_prof_data_size           
 ffffffff  __TI_prof_data_start          
@@ -266,4 +266,4 @@ ffffffff  binit
 UNDEFED   __mpu_init                    
 UNDEFED   _system_post_cinit            
 
-[66 symbols]
+[67 symbols]

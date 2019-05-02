@@ -5,17 +5,17 @@ m2: .string "--D4-RRA4-D4---D5---E5-E4-RRA4-E4---E5---g5-g4-RRA5---g4-g5---E5-E4
 board0: .string  "|---------------------------------------------|", 0xD, 0xA
 board1: .string  "|*********************************************|", 0xD, 0xA
 board2: .string  "|*****     *****     *****     *****     *****|", 0xD, 0xA
-board3: .string  "|~~~~~~~~~~~~~~~~~~~~~~9~~~~~~~~~~~~~~~~~~~~~~|", 0xD, 0xA
-board4: .string  "|~~~~~~~~~~~~~~~~~~~~~~8~~~~~~~~~~~~~~~~~~~~~~|", 0xD, 0xA
-board5: .string  "|~~~~~~~~~~~~~~~~~~~~~~7~~~~~~~~~~~~~~~~~~~~~~|", 0xD, 0xA
-board6: .string  "|~~~~~~~~~~~~~~~~~~~~~~6~~~~~~~~~~~~~~~~~~~~~~|", 0xD, 0xA
+board3: .string  "|~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~|", 0xD, 0xA
+board4: .string  "|~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~|", 0xD, 0xA
+board5: .string  "|~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~|", 0xD, 0xA
+board6: .string  "|~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~|", 0xD, 0xA
 board7: .string  "|.............................................|", 0xD, 0xA
-board8: .string  "|                      5                      |", 0xD, 0xA
-board9: .string  "|                      5                      |", 0xD, 0xA
-board10: .string "|                      4                      |", 0xD, 0xA
-board11: .string "|                      3                      |", 0xD, 0xA
-board12: .string "|                      2                      |", 0xD, 0xA
-board13: .string "|                      1                      |", 0xD, 0xA
+board8: .string  "|                                             |", 0xD, 0xA
+board9: .string  "|                                             |", 0xD, 0xA
+board10: .string "|                                             |", 0xD, 0xA
+board11: .string "|                                             |", 0xD, 0xA
+board12: .string "|                                             |", 0xD, 0xA
+board13: .string "|                                             |", 0xD, 0xA
 board14: .string "|......................&......................|", 0xD, 0xA
 board15: .string "|---------------------------------------------|", 0xD, 0xA, 0x0
 language: .string "1234567890qwertyuiopasdfghjklzxcvbnm!@#$%^&*()_", 0xD, 0xA, 0
@@ -23,12 +23,18 @@ frogLocation: .word 0x2C5
 previousFrogValue: .word 0x2E
 previousFrogLocation: .word 0x41D
 settings: .word 0x0
+PLAYER_SCORE: .word 0x0
 GAME_TIMER: .word 0x3C
-GAME_STATUS: .word 0x0; if game is running, this value is 0, if the game is over, or has not started yet, it is a 1, and 2 if the game is paused.
+InfoDisplay: .string "Your Current Score is: ", 0x0
+PLAYER_SCORE_ASCII: .word 0x0 ; this is the player's score, this should be displayed once the game is over
+PLAYER_SCORE_ASCII_BUFFER: .word 0x0 ;buffer for player score
+timerDisplay: .string "Time Left: ",0x0
+GAME_TIMER_ASCII: .word 0x0
+
+GAME_STATUS: .word 0x0 ; if game is running, this value is 0, if the game is over, or has not started yet, it is a 1, and 2 if the game is paused.
 BOARD_UPDATE: .byte 0x0 ; if this is not 0 the game moves the obstacles on the board
 FROG_LIVES: .byte 0x4 ; the game lives, if this reaches 0 the game is over
-PLAYER_SCORE: .word 0x0; this is the player's score, this should be displayed once the game is over
-WIN_COUNTER: .byte 0x0; this counter is incremented every time the player gets to the other end of the board safely, should be reset when it reaches 3, and the game should "level up"
+WIN_COUNTER: .byte 0x0 ; this counter is incremented every time the player gets to the other end of the board safely, should be reset when it reaches 3, and the game should "level up"
 	.text
 	.global lab7_library
 	.global uart_init
@@ -63,6 +69,7 @@ WIN_COUNTER: .byte 0x0; this counter is incremented every time the player gets t
 	.global checkForSpawn
 	.global mode
 	.global update_game_information
+	.global convertToAscii
 songPtr: .word song
 boardPtr: .word board0
 languagePtr: .word language
@@ -73,14 +80,31 @@ previousFrogLocationPtr: .word previousFrogLocation
 ;Game variable pointers:
 GAME_STATUS_PTR: .word GAME_STATUS
 GAME_TIMER_PTR: .word GAME_TIMER
+GAME_TIMER_ASCII_PTR: .word GAME_TIMER_ASCII
 BOARD_UPDATE_PTR: .word BOARD_UPDATE
 FROG_LIVES_PTR: .word FROG_LIVES
+PLAYER_SCORE_ASCII_PTR: .word PLAYER_SCORE_ASCII
 PLAYER_SCORE_PTR: .word PLAYER_SCORE
 WIN_COUNTER_PTR: .word WIN_COUNTER
+INFO_DISPLAY_PTR: .word InfoDisplay
+TIMER_DISPLAY_PTR: .word timerDisplay
 modePtr: .word 0x20005000
 ;-------------------------------------------------------------
 
+levelUp:
+	STMFD SP!, {lr, r0-r12}
+	MOV r4, #0x2000
+	MOVT r4, #0x4003
+	LDR r1, [r4, #0x28]
+	MOV r2, #0x3500
+	MOVT r2, #0xC
+	SUB r1, r1, r2
+	STR r1, [r4, #0x28]
+	;reset board
 
+
+	LDMFD SP!, {lr, r0-r12}
+	BX lr
 update_game_information: ; r0 - game status, r1 - game timer, r2 - Player score \\ returns current values in the same regs
 						; if -1 is put into a register, the info isn't updated
 	STMFD SP!, {lr, r3-r12}
@@ -200,6 +224,12 @@ notS:
 	BNE notD
 	ADD r3, r3, #1
 notD:
+	CMP r0,#'l'
+	IT EQ
+	BLEQ levelUp
+	BNE notL
+
+notL:
 	CMP r3,#0
 	BEQ notValidKey
 
@@ -223,6 +253,8 @@ notD:
 
 	BL resetFrog
 	B hittingObstacle
+
+
 notHittingObstacle:
 
 	;save value at new frog location to previousFrogValue
@@ -235,19 +267,27 @@ notHittingObstacle:
 	;store frog in new location
 	MOV r2,#0x26
 	STRB r2,[r4,r5]
-
+	B notDed2
 hittingObstacle:
 
-	MOV r4, #0xC000
-	MOVT r4, #0x4000
-	MOV r2, #0x3800
-	MOVT r2, #0x1
-	LDR r1, [r4, #0x28]
-	SUB r1, r1, r2
-	STR r1, [r4, #0x28]
-	LDR r1, [r4, #0xC] ;enable timer 0
-	EOR r1, r1, #0x1
-	STR r1, [r4, #0xC]
+
+	LDR r4, FROG_LIVES_PTR
+	LDRB r0, [r4]
+
+	SUB r0, r0, #1
+	STRB r0, [r4]
+	CMP r0, #0x0
+	BEQ ded2
+	B notDed2
+ded2:
+	MOV r0, #1
+	MOV r1, #-1
+	MOV r2, #-1
+	BL update_game_information
+	MOV r0, #0x2
+	BL illuminate_RGB_LED
+
+notDed2:
 notValidKey:
 
 
@@ -268,15 +308,34 @@ Timer0Handler: ;timer for game clock (1 second per cycle)
 	MOV r2, #-1
 	BL update_game_information
 	CMP r0, #0
-	BEQ gameNotStarted
+	BEQ gameStarted
 
-gameNotStarted:
+
+
+
+
+gameStarted:
+	LDR r4, GAME_TIMER_PTR
+	LDR r1, [r4]
+	SUB r1, r1, #0x1
+	MOV r0, #-1
+	MOV r2, #-1
+	BL update_game_information
+	CMP r1, #0x0
+	BEQ timesUp
 	LDR r4, GAME_STATUS_PTR
 	LDRB r1, [r4]
 	CMP r1, #0x0
 	BEQ noMusic
 
 	BL nextNote
+
+timesUp:
+	LDR r4, GAME_STATUS_PTR
+	LDRB r1, [r4]
+	MOV r1, #0x1
+	STRB r1, [r4] ;set game status to over if time runs out
+
 noMusic:
 
 
@@ -305,14 +364,16 @@ Timer1Handler: ; controls speaker pitch
 	LDMFD SP!, {lr, r0-r12}
 	BX lr
 
+
+
 Timer2Handler: ;Main handler
 	STMFD SP!, {lr, r1-r5, r7-r11}
-	MOV r4, #0
+	MOV r4, #0x2000
 	MOVT r4, #0x4003
-	;clear timer
 	LDRB r1, [r4, #0x24]
 	ORR r1, r1, #0x1
 	STRB r1, [r4, #0x24]
+
 
 	LDR r4, BOARD_UPDATE_PTR
 	LDRB r0, [r4]
@@ -340,7 +401,7 @@ noWaterUpdate:
 	MOV r3, #1
 truckLinesFinished:
 	STMFD SP!, {lr, r0-r3}
-;	BL shiftSetOfRows
+	BL shiftSetOfRows
 	LDMFD SP!, {lr, r0-r3}
 	ADD r0, r0, #2
 	ADD r1, r1, #2
@@ -357,7 +418,7 @@ noTruckUpdate:
 	MOV r3, #2
 carLinesFinished:
 	STMFD SP!, {lr, r0-r3}
-	;BL shiftSetOfRows
+	BL shiftSetOfRows
 	LDMFD SP!, {lr, r0-r3}
 	ADD r0, r0, #2
 	ADD r1, r1, #2
@@ -365,7 +426,16 @@ carLinesFinished:
 	CMP r8, #3
 	BNE carLinesFinished
 	BL putBackFrog
+
+	MOV r4, #0x2000
+	MOVT r4, #0x4003
+	LDRB r1, [r4, #0x48]
+	ORR r1, r1, #0x0
+	STRB r1, [r4, #0x48]
+
+
 	BL redrawBoard
+
 	;TODO: update frog position, flip boardupdate bit, shift game rows if boardupdate is true, redraw game board
 
 	; if valid position for frog, continue and add to score, else subtract life
@@ -378,21 +448,11 @@ carLinesFinished:
 
 		; if win counter == 3, increase clock period by .05 seconds
 
-
-	MOV r0, #0xFFFF
-	CMP r0, #0x0
 ;stabliliztion:
 	;flip board update bit
 	LDR r4, BOARD_UPDATE_PTR
 	LDRB r0, [r4]
-	CMP r0,#1
-	BNE flipBoard
-	MOV r0,#0
-	STRB r0, [r4]
-	LDMFD SP!, {lr, r1-r5, r7-r11}
-	BX lr
-flipBoard:
-	MOV r0,#1
+	EOR r0, r0, #1
 	STRB r0, [r4]
 
 	LDMFD SP!, {lr, r1-r5, r7-r11}
@@ -572,9 +632,54 @@ redrawBoard:	;shifts strings and redraws board
 	ADD r6, r6, #0x1
 	MOV r0, #0x48
 	BL output_character ; clears screen
+	LDR r4, INFO_DISPLAY_PTR
+	BL output_string
+	;TODO: output score in string form here
+	LDR r2, PLAYER_SCORE_PTR
+	LDR r0, [r2]
+	LDR r1, PLAYER_SCORE_ASCII_PTR
+	BL convertToAscii
+	LDR r4, PLAYER_SCORE_ASCII_PTR
+	BL output_string
+
+	LDR r4, TIMER_DISPLAY_PTR
+	BL output_string
+	;TODO: output timer in string form here
+	LDR r2, GAME_TIMER_PTR
+	LDRB r0, [r2]
+	LDR r1, GAME_TIMER_ASCII_PTR
+	BL convertToAscii
+	LDR r4, GAME_TIMER_ASCII_PTR
+	BL output_string
 
 	LDR r4, boardPtr
 	BL output_string
+
+	; set leds to correct lives
+	LDR r4, FROG_LIVES_PTR
+	LDRB r2, [r4]
+
+	CMP r2, #0x4
+	IT GE
+	MOVGE r0, #0xF
+
+	CMP r2, #0x3
+	IT EQ
+	MOVEQ r0, #0x7
+
+	CMP r2, #0x2
+	IT EQ
+	MOVEQ r0, #0x3
+
+	CMP r2, #0x1
+	IT EQ
+	MOVEQ r0, #0x1
+
+	CMP r2, #0x0
+	IT EQ
+	MOVEQ r0, #0x0
+
+	BL illuminate_LEDs
 	LDMFD SP!, {lr, r0-r12}
 	BX lr
 
@@ -919,7 +1024,22 @@ putBackFrog:
 	BNE validSpace
 	;frog is killed actions taken here
 	;decriment lives/points here
+	LDR r4, FROG_LIVES_PTR
+	LDRB r0, [r4]
 
+	SUB r0, r0, #1
+	STRB r0, [r4]
+	CMP r0, #0x0
+	BEQ ded
+	B notDed
+ded:
+	MOV r0, #1
+	MOV r1, #-1
+	MOV r2, #-1
+	BL update_game_information
+	MOV r0, #0x2
+	BL illuminate_RGB_LED
+notDed:
 	BL resetFrog
 
 	LDR r7, frogLocationPtr

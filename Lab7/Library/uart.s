@@ -58,7 +58,7 @@ output_character: ;puts text on the screen take what ever value is in r0 and put
 	MOVT r5, #0x4000	;store second half of location of UARTFR in r1
 	MOV r2, #0			;set up r2
 NOOUTPUTCHARACTER:
-	LDR r2,[r5]		;load UARTRR data to r2
+	LDRB r2,[r5]		;load UARTRR data to r2
  	AND r2,r2, #0x20	;mask UARTFR with xFF and store result in r0
  	CMP	r2,#0x20	;check if r3 is 0
  	BEQ NOOUTPUTCHARACTER	;if not 0 branch to NOOUTPUTCHARACTER

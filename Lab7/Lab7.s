@@ -138,7 +138,7 @@ startGame:
 	MOV r0, #0x4
 	BL illuminate_RGB_LED
 	MOV r0, #0
-	MOV r1, #60
+	MOV r1, #60 ;set game start time here
 	MOV r2, #0
 	BL update_game_information
 	MOV r4, #0x0000

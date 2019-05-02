@@ -170,7 +170,7 @@ timer2_interrupt_init:	;initalize Timer interrupt for speaker
 	MOV r3, #0xE000
 	MOVT r3, #0xE000
 	MOV r4, #0x2000
-	MOVT r4, #0x4003 ; sets base address for Timer1
+	MOVT r4, #0x4003 ; sets base address for Timer2
 	MOV r2, #0xE000
 	MOVT r2, #0x400F
 	;Connect clock to Timer
@@ -199,8 +199,8 @@ stabilize3:
 	STRB r1, [r4, #0x4]
 	;set interrupt interval
 	LDR r1, [r4, #0x28]
-	MOV r1, #0x8480
-	MOVT r1, #0x11E ; initial clock speed (.125 seconds)
+	MOV r1, #0x1200
+	MOVT r1, #0x7A ; initial clock speed (.5 seconds)
 	STR r1, [r4, #0x28]
 	;set timer to interrup when top limit of timer reached
 	LDRB r1, [r4, #0x18]
