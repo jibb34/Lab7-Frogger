@@ -62,7 +62,7 @@ modePtr: .word 0x20005000
 
 Lab7:				;diplays the prompt and initializes the interrupts then goes into an
 					;infinate loop until the endgame variable is set to 0
-					;NOTE: baud rate must be set to 115200
+					;NOTE: baud rate must be set to 460800
 	STMFD sp!, {lr}
 	MOV r0, #1
 	MOV r1, #-1

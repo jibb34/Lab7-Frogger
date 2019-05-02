@@ -238,6 +238,8 @@ notHittingObstacle:
 
 hittingObstacle:
 
+	MOV r4, #0xC000
+	MOVT r4, #0x4000
 	MOV r2, #0x3800
 	MOVT r2, #0x1
 	LDR r1, [r4, #0x28]

@@ -394,13 +394,13 @@ uart_init:
     ;(*((volatile uint32_t *)(0x4000C024))) |= 8;
     MOV r0, #0xC024		;set the second half of r0 to the second half of the hex value a above
     MOVT r0, #0x4000	;set the first half of r0 to the first half of the hex value a above
-    MOV r1,#8			;set r1 to integer above
+    MOV r1,#2			;set r1 to integer above
     BL LOAD_SETTINGS	;do load procedure
     ;/* Set UART0_FBRD_R for 57600 baud */
     ;(*((volatile uint32_t *)(0x4000C028))) |= 5;
     MOV r0, #0xC028		;set the second half of r0 to the second half of the hex value a above
     MOVT r0, #0x4000	;set the first half of r0 to the first half of the hex value a above
-    MOV r1,#44		;set r1 to integer above
+    MOV r1,#11		;set r1 to integer above
     BL LOAD_SETTINGS	;do load procedure
     ;/* Use System Clock */
     ;(*((volatile uint32_t *)(0x4000CFC8))) |= 0;
