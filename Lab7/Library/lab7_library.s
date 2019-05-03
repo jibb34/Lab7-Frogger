@@ -133,6 +133,30 @@ GAME_LEVEL_PTR: .word GAME_LEVEL
 LEVEL_BASE_TIME_PTR: .word LEVEL_BASE_TIME
 ;-------------------------------------------------------------
 
+frogLifeLost:
+	STMFD SP!, {lr, r0-r12}
+
+	LDR r4, FROG_LIVES_PTR
+	LDRB r0, [r4]
+
+	SUB r0, r0, #1
+	STRB r0, [r4]
+	CMP r0, #0x0
+	BEQ ded
+	B notDed
+ded:
+	MOV r0, #1
+	MOV r1, #-1
+	MOV r2, #-1
+	BL update_game_information
+	MOV r0, #0x2
+	BL illuminate_RGB_LED
+notDed:
+	BL resetFrog
+
+	LDMFD SP!, {lr, r0-r12}
+	BX lr
+
 awardPoints: ; gives points to the player from r0; pity the player, feed him well my child
 	STMFD SP!, {lr, r1-r12}
 	LDR r4, PLAYER_SCORE_PTR
@@ -363,27 +387,11 @@ notHittingObstacle:
 	;store frog in new location
 	MOV r2,#0x26
 	STRB r2,[r4,r5]
-	B notDed2
+	B notValidKey
 hittingObstacle:
 
 
-	LDR r4, FROG_LIVES_PTR
-	LDRB r0, [r4]
-
-	SUB r0, r0, #1
-	STRB r0, [r4]
-	CMP r0, #0x0
-	BEQ ded2
-	B notDed2
-ded2:
-	MOV r0, #1
-	MOV r1, #-1
-	MOV r2, #-1
-	BL update_game_information
-	MOV r0, #0x2
-	BL illuminate_RGB_LED
-
-notDed2:
+	BL frogLifeLost
 notValidKey:
 
 
@@ -430,9 +438,10 @@ timesUp:
 	LDR r4, GAME_STATUS_PTR
 	LDRB r1, [r4]
 	MOV r1, #0x1
-	STRB r1, [r4] ;lose life if time runs out
+	STRB r1, [r4] ;die if time runs out
 	MOV r4, #0x2000
 	MOVT r4, #0x4003
+	BL resetFrog
 	LDR r1, [r4, #0xC] ;toggle timer2 off
 	BIC r1, r1, #0x1
 	STR r1, [r4, #0xC]
@@ -478,17 +487,23 @@ Timer2Handler: ;Main handler
 	LDRB r1, [r4, #0x24]
 	ORR r1, r1, #0x1
 	STRB r1, [r4, #0x24]
+	; check if frog reaches other end here:///
+	;needs to check for frog, if its in last row, increment win counter, then check if win counter is 3
+	;if it is, call levelUp function
 
-	BL checkForFrog
-	CMP r0, #0x2
-	BNE notWinning
-	LDR r4, WIN_COUNTER_PTR
-	LDRB r1, [r4]
-	ADD r1, r1, #1
-	STRB r1, [r4]
-	CMP r1, #0x3
-	BLT notLevelUp
-	BL levelUp
+
+
+; ignore this stuff, for testing:
+;	BL checkForFrog
+;	CMP r0, #0x2
+;	BNE notWinning
+;	LDR r4, WIN_COUNTER_PTR
+;	LDRB r1, [r4]
+;	ADD r1, r1, #1
+;	STRB r1, [r4]
+;	CMP r1, #0x3
+;	BLT notLevelUp
+;	BL levelUp
 
 
 notLevelUp:
@@ -1155,23 +1170,7 @@ putBackFrog:
 	BNE validSpace
 	;frog is killed actions taken here
 	;decriment lives/points here
-	LDR r4, FROG_LIVES_PTR
-	LDRB r0, [r4]
-
-	SUB r0, r0, #1
-	STRB r0, [r4]
-	CMP r0, #0x0
-	BEQ ded
-	B notDed
-ded:
-	MOV r0, #1
-	MOV r1, #-1
-	MOV r2, #-1
-	BL update_game_information
-	MOV r0, #0x2
-	BL illuminate_RGB_LED
-notDed:
-	BL resetFrog
+	BL frogLifeLost
 
 	LDR r7, frogLocationPtr
 	LDR r7,[r7]

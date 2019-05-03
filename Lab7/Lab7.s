@@ -153,6 +153,9 @@ startGame:
 	MOV r1, #0x2400
 	MOVT r1, #0xF4 ; update timer clock speed
 	STR r1, [r4, #0x28]
+	LDR r1, [r4, #0xC] ;turn on timer
+	ORR r1, r1, #0x1
+	STR r1, [r4, #0xC]
 	MOV r4, #0x1000
 	MOVT r4, #0x4003
 	LDR r1, [r4, #0xC] ;toggle timer off (turn off music)
