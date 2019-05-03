@@ -177,6 +177,11 @@ startGame:
 	LDR r1, [r4, #0xC] ;toggle timer off (turn off music)
 	BIC r1, r1, #0x1
 	STR r1, [r4, #0xC]
+	MOV r8, #0x7000
+	MOVT r8, #0x4000
+	LDRB r1, [r8, #0x3FC]
+	ORR r1, r1, #0xF
+	STRB r1, [r8, #0x3FC] ; sets pins to high for interrupt stuff
 	BL timer2_interrupt_init
 	ADD r6, r6, #0x1
 	MOV r0, #0xC

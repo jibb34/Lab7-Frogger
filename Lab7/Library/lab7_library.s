@@ -604,6 +604,8 @@ PortAHandler:   ;if keypad gets a input this subroutine will check the value giv
 	STRB r2, [r3, #0x180]
 	ORR r2, r2, #0x1F
 	LDRB r2, [r3, #0x180]
+	MOV r0, #0x1
+	BL illuminate_RGB_LED
 	;do stuff on keyboard press here: -----------------------------------------
 	BL read_from_keypad
 	MOV r1, #0x00DF
