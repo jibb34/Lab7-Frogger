@@ -7,17 +7,17 @@ endSong: .string "D5-b4d5C5RB4Rb4RA4RG4Rg4RD5-RRD4--."
 board0: .string  "|---------------------------------------------|", 0xD, 0xA
 board1: .string  "|*********************************************|", 0xD, 0xA
 board2: .string  "|*****     *****     *****     *****     *****|", 0xD, 0xA
-board3: .string  "|~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~|", 0xD, 0xA
-board4: .string  "|~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~|", 0xD, 0xA
-board5: .string  "|~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~|", 0xD, 0xA
-board6: .string  "|~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~|", 0xD, 0xA
+board3: .string  "|~~LLLLLL~~~~~~~~O~~~~~~~~~~~~~TT~~~~~~~~~~~~~|", 0xD, 0xA
+board4: .string  "|~~~O~~~~~~~~O~~~~~~~~~~Aaaaaa~~~~~TT~~~~~~~~~|", 0xD, 0xA
+board5: .string  "|~~aaaaaA~~~~~~~~~~~~~~~~~~TT~~~~~~~~~LLLLLL~~|", 0xD, 0xA
+board6: .string  "|~Aaaaaa~~~~~O~~~~~~~~~O~~~~~LLLLLL~~~~~~~~~~~|", 0xD, 0xA
 board7: .string  "|.............................................|", 0xD, 0xA
-board8: .string  "|                                             |", 0xD, 0xA
-board9: .string  "|                                             |", 0xD, 0xA
-board10: .string "|                                             |", 0xD, 0xA
-board11: .string "|                                             |", 0xD, 0xA
-board12: .string "|                                             |", 0xD, 0xA
-board13: .string "|                                             |", 0xD, 0xA
+board8: .string  "|           ####          ####                |", 0xD, 0xA
+board9: .string  "|C        C C     C    C        C     C  C    |", 0xD, 0xA
+board10: .string "|      ####                    ####       ####|", 0xD, 0xA
+board11: .string "|      C      C C          C        C      C  |", 0xD, 0xA
+board12: .string "|            ####    ####      ####      #### |", 0xD, 0xA
+board13: .string "|   C     C          C    C             C     |", 0xD, 0xA
 board14: .string "|......................&......................|", 0xD, 0xA
 board15: .string "|---------------------------------------------|", 0xD, 0xA, 0x0
 language: .string "1234567890qwertyuiopasdfghjklzxcvbnm!@#$%^&*()_", 0xD, 0xA, 0
@@ -106,6 +106,8 @@ GAME_LEVEL: .byte 0x0; what level you're on
 	.global convertToAscii
 	.global printGameOver
 	.global resetFrogLives
+	.global clearHomes
+	.global setLevelTime
 songPtr: .word song
 boardPtr: .word board0
 languagePtr: .word language
@@ -132,6 +134,12 @@ fSSPTR: .word finalScoreString
 GAME_LEVEL_PTR: .word GAME_LEVEL
 LEVEL_BASE_TIME_PTR: .word LEVEL_BASE_TIME
 ;-------------------------------------------------------------
+setLevelTime:
+	STMFD SP!, {lr, r1-r12}
+	LDR r4, LEVEL_BASE_TIME_PTR
+	STR r0, [r4]
+	LDMFD SP!, {lr, r1-r12}
+	BX lr
 
 frogLifeLost:
 	STMFD SP!, {lr, r0-r12}
@@ -219,7 +227,8 @@ levelUp:
 	LDR r1, [r4]
 	SUB r1, r1, #10
 	STR r1, [r4]
-
+	LDR r4, GAME_TIMER_PTR
+	STR r1, [r4]
 	LDMFD SP!, {lr, r0-r12}
 	BX lr
 update_game_information: ; r0 - game status, r1 - game timer, r2 - Player score \\ returns current values in the same regs
@@ -236,16 +245,17 @@ noStatusUpdate:
 	CMP r1, #-1
 	BEQ noTimerUpdate
 
-	STRB r1, [r4]
+	STR r1, [r4]
+
 noTimerUpdate:
-	LDRB r1, [r4]
+	LDR r1, [r4]
 	LDR r4, PLAYER_SCORE_PTR
 	CMP r2, #-1
 	BEQ noScoreUpdate
 
-	STRB r2, [r4]
+	STR r2, [r4]
 noScoreUpdate:
-	LDRB r2, [r4]
+	LDR r2, [r4]
 
 
 	LDMFD SP!, {lr, r3-r12}
@@ -1221,164 +1231,177 @@ notEndOfBoard:
 	BX lr
 
 spawnFly:	;spawns flys
-		STMFD SP!,{lr, r0-r12}
-
-		MOV r0, #2
+	STMFD SP!,{lr, r0-r12}
+	MOV r0, #2
 		BL convertFromNthRowToMemoryLocation
-		ADD r0, r0, #8
-		MOV r7, r0
-		MOV r1, #0
+	ADD r0, r0, #8
+	MOV r7, r0
+	MOV r1, #0
 checkforFly:
-		LDRB r2, [r0]
-		CMP r2, #0x2B
-		BEQ foundFly
-		ADD r0, r0, #10
-		ADD r1, r1, #1
-		CMP r1, #4
-		BNE checkforFly
+	LDRB r2, [r0]
+	CMP r2, #0x2B
+	BEQ foundFly
+	ADD r0, r0, #10
+	ADD r1, r1, #1
+	CMP r1, #4
+	BNE checkforFly
 slotOccupied:
-		MOV r0, #4
-		BL rng
-		MOV r1, #10
-		MUL r2, r1, r0
-		ADD r8, r7, r2
-		LDRB r0, [r8]
-		CMP r0, #0x48
-		BEQ slotOccupied
-		MOV r0, #0x2B
-		STRB r0, [r8]
+	MOV r0, #4
+	BL rng
+	MOV r1, #10
+	MUL r2, r1, r0
+	ADD r8, r7, r2
+	LDRB r0, [r8]
+	CMP r0, #0x48
+	BEQ slotOccupied
+	MOV r0, #0x2B
+	STRB r0, [r8]
 foundFly:
-		LDMFD sp!, {lr, r0-r12}
-		BX lr
+	LDMFD sp!, {lr, r0-r12}
+	BX lr
 
 resetBoard:
-		STMFD SP!,{lr, r0-r12}
+	STMFD SP!,{lr, r0-r12}
 
-	 	BL clearHomes
-		;clear river
-		MOV r0, #3
-		BL convertFromNthRowToMemoryLocation
-		MOV r4, #0
-		MOV r1, #45
-		MOV r2, #0x7E
+ 	BL clearHomes
+	;clear river
+	MOV r0, #3
+	BL convertFromNthRowToMemoryLocation
+	MOV r4, #0
+	MOV r1, #45
+	MOV r2, #0x7E
 clearRiver:
-		ADD r4, r4, #1
-		BL fill_string
-		CMP r4, #5
-		ADD r0, r0, #0x49
-		BNE clearRiver
-		;clear road
-		ADD r0, r0, #49
-		MOV r4, #0
-		MOV r1, #45
-		MOV r2, #0x20
+	ADD r4, r4, #1
+	BL fill_string
+	CMP r4, #5
+	ADD r0, r0, #0x49
+	BNE clearRiver
+	;clear road
+	ADD r0, r0, #49
+	MOV r4, #0
+	MOV r1, #45
+	MOV r2, #0x20
 clearRoad:
-		ADD r4, r4, #1
-		BL fill_string
-		CMP r4, #5
-		ADD r0, r0, #0x49
-		BNE clearRoad
+	ADD r4, r4, #1
+	BL fill_string
+	CMP r4, #5
+	ADD r0, r0, #0x49
+	BNE clearRoad
 
-		LDMFD sp!, {lr, r0-r12}
-		BX lr
+	LDMFD sp!, {lr, r0-r12}
+	BX lr
 
 clearHomes:
-		STMFD SP!,{lr, r0-r12}
-		MOV r0, #2
-		BL convertFromNthRowToMemoryLocation
-		ADD r0, r0, #6
-		MOV r4, #0
-		MOV r1, #5
-		MOV r2, #0x20
+	STMFD SP!,{lr, r0-r12}
+	MOV r0, #2
+	BL convertFromNthRowToMemoryLocation
+	ADD r0, r0, #6
+	MOV r4, #0
+	MOV r1, #5
+	MOV r2, #0x20
 clearHome:
-		ADD r4, r4, #1
-		BL fill_string
-		ADD r0, r0, #10
-		CMP r4, #4
-		BNE clearHome
-		LDMFD SP!, {lr, r0-r12}
-		BX lr
+	ADD r4, r4, #1
+	BL fill_string
+	ADD r0, r0, #10
+	CMP r4, #4
+	BNE clearHome
+	LDR r4, WIN_COUNTER_PTR
+	MOV r1, #0
+	STRB r1, [r4]
+
+
+	LDMFD SP!, {lr, r0-r12}
+	BX lr
 fillHome:		;the nth home slot starting at 0 and ending at 4
-		STMFD SP!,{lr, r1-r12}
-		;get to home row
-		MOV r4, r0
-		MOV r0, #2
-		BL convertFromNthRowToMemoryLocation
-		ADD r0, r0, #6
-		MOV r2, #10
-		MUL r4, r4, r2
-		ADD r0, r0, r4
-		;get to home slot specifed in r0
-		MOV r1, #5
-		MOV r2, #0x48
-		;fill with H
-		BL fill_string
-		LDMFD SP!, {lr, r1-r12}
-		BX lr
+	STMFD SP!,{lr, r1-r12}
+	;get to home row
+	MOV r4, r0
+	MOV r0, #2
+	BL convertFromNthRowToMemoryLocation
+	ADD r0, r0, #6
+	MOV r2, #10
+	MUL r4, r4, r2
+	ADD r0, r0, r4
+	;get to home slot specifed in r0
+	MOV r1, #5
+	MOV r2, #0x48
+	;fill with H
+	BL fill_string
+	LDMFD SP!, {lr, r1-r12}
+	BX lr
 checkWhichWinSlot:
-		STMFD SP!,{lr, r1-r12}
-		LDR r4, frogLocationPtr
-		LDR r4, [r4]
-		LDR r5, boardPtr
-		ADD r4, r4, r5
-		MOV r0, #2
-		BL convertFromNthRowToMemoryLocation
-		ADD r0,r0, #5
-		MOV r2, #-1
+	STMFD SP!,{lr, r1-r12}
+	LDR r4, frogLocationPtr
+	LDR r4, [r4]
+	LDR r5, boardPtr
+	ADD r4, r4, r5
+	MOV r0, #2
+	BL convertFromNthRowToMemoryLocation
+	ADD r0,r0, #5
+	MOV r2, #-1
 searchSlots:
 
-		CMP r0, r4
-		BGT foundSlot
-		ADD r2, r2, #1
-		ADD r0, r0, #10
-		CMP r2, #5
-		BNE searchSlots
+	CMP r0, r4
+	BGT foundSlot
+	ADD r2, r2, #1
+	ADD r0, r0, #10
+	CMP r2, #5
+	BNE searchSlots
 foundSlot:
-		MOV r0, r2
-		LDMFD SP!, {lr, r1-r12}
-		BX lr
+	MOV r0, r2
+	LDMFD SP!, {lr, r1-r12}
+	BX lr
 checkWinCondition:
-		STMFD SP!,{lr, r0-r12}
-		BL checkForFrog
-		CMP r0, #2
-		BEQ winDectected
+	STMFD SP!,{lr, r0-r12}
+	BL checkForFrog
+	CMP r0, #2
+	BEQ winDectected
 
 
-		LDMFD sp!, {lr, r0-r12}
-		BX lr
+	LDMFD sp!, {lr, r0-r12}
+	BX lr
+
 winDectected:
-		LDR r4, WIN_COUNTER_PTR
-		LDRB r1, [r4]
-		ADD r1, r1, #1
-		CMP r1, #2
-		BNE noLevelUp
-		BL levelUp
-		MOV r1, #0
-		STRB r1, [r4]
-		LDMFD sp!, {lr, r0-r12}
-		BX lr
+	LDR r1, [r4]
+	LDR r4, WIN_COUNTER_PTR
+	LDRB r1, [r4]
+	ADD r1, r1, #1
+	CMP r1, #2
+	BNE noLevelUp
+	BL levelUp
+	MOV r1, #0
+	STRB r1, [r4]
+	LDR r4, LEVEL_BASE_TIME_PTR
+	LDR r1, [r4]
+	MOV r0, #-1
+	MOV r2, #-1
+	BL update_game_information
+	LDMFD sp!, {lr, r0-r12}
+	BX lr
 noLevelUp:
-		STRB r1, [r4]
-		BL checkWhichWinSlot
-		BL fillHome
-		LDR r4, LEVEL_BASE_TIME_PTR
-		LDR r1, [r4]
-		LDR r4, GAME_TIMER_PTR
-		STR r1, [r4] ; set the game back to base time if you make it to other side
-		BL resetFrog
-		BL putBackFrog
+	STRB r1, [r4]
+	BL checkWhichWinSlot
+	BL fillHome
+	LDR r4, LEVEL_BASE_TIME_PTR
+	LDR r1, [r4]
+	MOV r0, #-1
+	MOV r2, #-1
+	BL update_game_information
+	STR r1, [r4] ; set the game back to base time if you make it to other side
+	BL resetFrog
+	BL putBackFrog
 
-		LDMFD sp!, {lr, r0-r12}
-		BX lr
+	LDMFD sp!, {lr, r0-r12}
+	BX lr
 convertFromNthRowToMemoryLocation: ;r0 is nth row
-		STMFD SP!,{lr, r1-r12}
-		LDR r4, boardPtr
-		MOV r1, #49
-		MUL r1, r1, r0
-		ADD r4, r4, r1
-		MOV r0, r4
-		LDMFD sp!, {lr, r1-r12}
-		BX lr
+	STMFD SP!,{lr, r1-r12}
+	LDR r4, boardPtr
+	MOV r1, #49
+	MUL r1, r1, r0
+	ADD r4, r4, r1
+	MOV r0, r4
+	LDMFD sp!, {lr, r1-r12}
+	BX lr
 
 
 .end

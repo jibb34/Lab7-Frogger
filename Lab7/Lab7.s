@@ -11,7 +11,21 @@ op1: .string "1: Start Game", 0xD, 0xA
 op2: .string "2: How to Play", 0xD, 0xA
 op3: .string "3: Hiscores", 0xD, 0xA, 0xD, 0xA, "Press M to mute music", 0xD, 0xA, 0x0
 
-inst: .string "The instructions will go here. (Press 0 to return)", 0
+inst: .string "Instructions:", 0xD, 0xA, 0xD, 0xA
+inst1: .string "How To Play:", 0xD, 0xA, 0xD, 0xA
+inst2: .string "- WASD to move", 0xD, 0xA, 0xD, 0xA
+inst3: .string "- Objective is to get to the other side within the time limit.", 0xD, 0xA, 0xD, 0xA
+inst4: .string "- You have 4 lives, if you get hit by a car or truck, or fall in the water, you lose a life.", 0xD, 0xA, 0xD, 0xA
+inst5: .string "- If you do not get to the other side within the time limit, the game is over.", 0xD, 0xA, 0xD, 0xA
+inst6: .string "- You must get to the end twice in order to progress to the next level.", 0xD, 0xA, 0xD, 0xA
+inst7: .string "- With each level, the speed of the obstacles increases.", 0xD, 0xA, 0xD, 0xA
+inst8: .string "- Points are awarded for actions taken:", 0xD, 0xA, 0xD, 0xA
+inst10: .string "	- Every line you advance is 10 Points.", 0xD, 0xA
+inst11: .string "	- Getting a frog home is 50 Points", 0xD, 0xA
+inst12: .string "	- Eating a fly is 100 Points", 0xD, 0xA
+inst13: .string "	- Increasing to the next level is 250 Points", 0xD, 0xA
+inst14: .string "	- The time left after each trip home is added to your score", 0xD, 0xA
+inst15: .string "Press 0 to return to Menu", 0xD, 0xA, 0x0
 hiscoreString: .string 0xD, 0xA ,"Hiscores will go here once they are implemented (Press 0 to return)", 0xD, 0xA, 0xD, 0xA, 0xD, 0xA
 hiscores1: .string " 1>-------- : ----",0xD, 0xA
 hiscores2: .string " 2>-------- : ----",0xD, 0xA
@@ -57,6 +71,8 @@ hiscores10: .string "10>-------- : ----",0xD, 0xA, 0x0
 	.global convertToAscii
 	.global printGameOver
 	.global resetFrogLives
+	.global clearHomes
+	.global setLevelTime
 menuPtr: .word menu
 instPtr: .word inst
 hiscoreStringPtr: .word hiscoreString
@@ -206,13 +222,14 @@ g0Loop:
 	B g0Loop
 
 restartGameProcedure:
-
+	BL clearHomes
 	BL resetFrogLives
 	MOV r0, #1
 	MOV r1, #0x3C
 	MOV r2, #0
 	BL update_game_information
-
+	MOV r0, r1
+	BL setLevelTime
 	B restartGame
 
 	LDMFD sp!, {lr}
