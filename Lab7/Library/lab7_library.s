@@ -213,11 +213,13 @@ levelUp:
 	LDR r4, GAME_LEVEL_PTR
 	MOV r1, #0x0
 	STRB r1, [r4]
+	BL clearHomes
 	BL resetFrog
 	LDR r4, LEVEL_BASE_TIME_PTR
 	LDR r1, [r4]
 	SUB r1, r1, #10
 	STR r1, [r4]
+
 	LDMFD SP!, {lr, r0-r12}
 	BX lr
 update_game_information: ; r0 - game status, r1 - game timer, r2 - Player score \\ returns current values in the same regs
@@ -491,29 +493,6 @@ Timer2Handler: ;Main handler
 	;needs to check for frog, if its in last row, increment win counter, then check if win counter is 3
 	;if it is, call levelUp function
 
-
-
-; ignore this stuff, for testing:
-;	BL checkForFrog
-;	CMP r0, #0x2
-;	BNE notWinning
-;	LDR r4, WIN_COUNTER_PTR
-;	LDRB r1, [r4]
-;	ADD r1, r1, #1
-;	STRB r1, [r4]
-;	CMP r1, #0x3
-;	BLT notLevelUp
-;	BL levelUp
-
-
-notLevelUp:
-
-	LDR r4, LEVEL_BASE_TIME_PTR
-	LDR r1, [r4]
-	LDR r4, GAME_TIMER_PTR
-	STR r1, [r4] ; set the game back to base time if you make it to other side
-	BL resetFrog
-notWinning:
 	LDR r4, BOARD_UPDATE_PTR
 	LDRB r0, [r4]
 	LDR r4, boardPtr
@@ -573,6 +552,8 @@ carLinesFinished:
 	STRB r1, [r4, #0x48]
 
 
+	BL checkWinCondition
+	BL spawnFly
 	BL redrawBoard
 
 	;TODO: update frog position, flip boardupdate bit, shift game rows if boardupdate is true, redraw game board
@@ -1238,5 +1219,166 @@ notEndOfBoard:
 	STR r5,[r3]
 	LDMFD sp!, {lr, r1-r12}
 	BX lr
+
+spawnFly:	;spawns flys
+		STMFD SP!,{lr, r0-r12}
+
+		MOV r0, #2
+		BL convertFromNthRowToMemoryLocation
+		ADD r0, r0, #8
+		MOV r7, r0
+		MOV r1, #0
+checkforFly:
+		LDRB r2, [r0]
+		CMP r2, #0x2B
+		BEQ foundFly
+		ADD r0, r0, #10
+		ADD r1, r1, #1
+		CMP r1, #4
+		BNE checkforFly
+slotOccupied:
+		MOV r0, #4
+		BL rng
+		MOV r1, #10
+		MUL r2, r1, r0
+		ADD r8, r7, r2
+		LDRB r0, [r8]
+		CMP r0, #0x48
+		BEQ slotOccupied
+		MOV r0, #0x2B
+		STRB r0, [r8]
+foundFly:
+		LDMFD sp!, {lr, r0-r12}
+		BX lr
+
+resetBoard:
+		STMFD SP!,{lr, r0-r12}
+
+	 	BL clearHomes
+		;clear river
+		MOV r0, #3
+		BL convertFromNthRowToMemoryLocation
+		MOV r4, #0
+		MOV r1, #45
+		MOV r2, #0x7E
+clearRiver:
+		ADD r4, r4, #1
+		BL fill_string
+		CMP r4, #5
+		ADD r0, r0, #0x49
+		BNE clearRiver
+		;clear road
+		ADD r0, r0, #49
+		MOV r4, #0
+		MOV r1, #45
+		MOV r2, #0x20
+clearRoad:
+		ADD r4, r4, #1
+		BL fill_string
+		CMP r4, #5
+		ADD r0, r0, #0x49
+		BNE clearRoad
+
+		LDMFD sp!, {lr, r0-r12}
+		BX lr
+
+clearHomes:
+		STMFD SP!,{lr, r0-r12}
+		MOV r0, #2
+		BL convertFromNthRowToMemoryLocation
+		ADD r0, r0, #6
+		MOV r4, #0
+		MOV r1, #5
+		MOV r2, #0x20
+clearHome:
+		ADD r4, r4, #1
+		BL fill_string
+		ADD r0, r0, #10
+		CMP r4, #4
+		BNE clearHome
+		LDMFD SP!, {lr, r0-r12}
+		BX lr
+fillHome:		;the nth home slot starting at 0 and ending at 4
+		STMFD SP!,{lr, r1-r12}
+		;get to home row
+		MOV r4, r0
+		MOV r0, #2
+		BL convertFromNthRowToMemoryLocation
+		ADD r0, r0, #6
+		MOV r2, #10
+		MUL r4, r4, r2
+		ADD r0, r0, r4
+		;get to home slot specifed in r0
+		MOV r1, #5
+		MOV r2, #0x48
+		;fill with H
+		BL fill_string
+		LDMFD SP!, {lr, r1-r12}
+		BX lr
+checkWhichWinSlot:
+		STMFD SP!,{lr, r1-r12}
+		LDR r4, frogLocationPtr
+		LDR r4, [r4]
+		LDR r5, boardPtr
+		ADD r4, r4, r5
+		MOV r0, #2
+		BL convertFromNthRowToMemoryLocation
+		ADD r0,r0, #5
+		MOV r2, #-1
+searchSlots:
+
+		CMP r0, r4
+		BGT foundSlot
+		ADD r2, r2, #1
+		ADD r0, r0, #10
+		CMP r2, #5
+		BNE searchSlots
+foundSlot:
+		MOV r0, r2
+		LDMFD SP!, {lr, r1-r12}
+		BX lr
+checkWinCondition:
+		STMFD SP!,{lr, r0-r12}
+		BL checkForFrog
+		CMP r0, #2
+		BEQ winDectected
+
+
+		LDMFD sp!, {lr, r0-r12}
+		BX lr
+winDectected:
+		LDR r4, WIN_COUNTER_PTR
+		LDRB r1, [r4]
+		ADD r1, r1, #1
+		CMP r1, #2
+		BNE noLevelUp
+		BL levelUp
+		MOV r1, #0
+		STRB r1, [r4]
+		LDMFD sp!, {lr, r0-r12}
+		BX lr
+noLevelUp:
+		STRB r1, [r4]
+		BL checkWhichWinSlot
+		BL fillHome
+		LDR r4, LEVEL_BASE_TIME_PTR
+		LDR r1, [r4]
+		LDR r4, GAME_TIMER_PTR
+		STR r1, [r4] ; set the game back to base time if you make it to other side
+		BL resetFrog
+		BL putBackFrog
+
+		LDMFD sp!, {lr, r0-r12}
+		BX lr
+convertFromNthRowToMemoryLocation: ;r0 is nth row
+		STMFD SP!,{lr, r1-r12}
+		LDR r4, boardPtr
+		MOV r1, #49
+		MUL r1, r1, r0
+		ADD r4, r4, r1
+		MOV r0, r4
+		LDMFD sp!, {lr, r1-r12}
+		BX lr
+
 
 .end
