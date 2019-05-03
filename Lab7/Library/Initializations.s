@@ -261,12 +261,12 @@ GPIO_init:		;initializes GPIO
 	STRB r1, [r7, #0x51C] ; enables RGB LED pins to digital
 
 	;Port C
-;	LDRB r1, [r10, #0x400]
-;	ORR r1, #0x10
-	;STRB r1, [r10, #0x400]; set speaker pin to output
-	;LDRB r1, [r10, #0x51C]
-	;ORR r1, #0x10
-	;STRB r1, [r10, #0x51C] ; enables speaker pin to digital
+	LDRB r1, [r10, #0x400]
+	ORR r1, #0x10
+	STRB r1, [r10, #0x400]; set speaker pin to output
+	LDRB r1, [r10, #0x51C]
+	ORR r1, #0x10
+	STRB r1, [r10, #0x51C] ; enables speaker pin to digital
 
 	;Port D init
 	LDRB r1, [r8, #0x51C]
@@ -278,12 +278,12 @@ GPIO_init:		;initializes GPIO
 
 
 	;Port A
-;	LDRB r1, [r9, #0x51C]
-;	ORR r1, r1, #0x3C;(b'0011 1100)(xx(a5)(a4)(a3)(a2)xx
-;	STRB r1, [r9, #0x51C] ; enables keypad input pins to digital
-;	LDRB r1, [r9, #0x400]
-;	BIC r1, #0x3C
-;	STRB r1, [r9, #0x400] ; sets kip to input
+	LDRB r1, [r9, #0x51C]
+	ORR r1, r1, #0x3C;(b'0011 1100)(xx(a5)(a4)(a3)(a2)xx
+	STRB r1, [r9, #0x51C] ; enables keypad input pins to digital
+	LDRB r1, [r9, #0x400]
+	BIC r1, #0x3C
+	STRB r1, [r9, #0x400] ; sets kip to input
 	LDMFD sp!, {lr, r0-r12}
 	BX lr
 

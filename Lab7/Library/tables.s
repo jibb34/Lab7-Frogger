@@ -102,6 +102,8 @@ playNote: ; input: address of note in r4, output: value to plug in directly to t
 	BEQ end
 	CMP r1, #0x2D
 	BEQ legato
+	CMP R1, #'.'
+	BEQ finalEnd
 	LDRB r2, [r4, #1]
 	SUB r2, r2, #50
 	ADD r6, r6, #1
@@ -181,6 +183,10 @@ legato:
 	CMP r1, #0x2D ;if legato
 	IT EQ
 	MOVEQ r0, #0x2D
+finalEnd
+	CMP r1, #'.'
+	IT EQ
+	MOVEQ r0, #0xC
 
 	LDMFD SP!, {lr, r1-r3, r5, r7-r12}
 	BX lr

@@ -1,6 +1,8 @@
 	.data
 song: .string "D5-D4-RRA4---D4-D5---E5-E4-RRA4---E4-E5---g5-g4-RRA5---g4-g5---E5-E4-RRA4---E4-E5---D5-D4-RRA4---D4-g5---E5-E4-RRA4---E4-G5---g5-g4-A5-A4-D6-D5-B5-B4-A5---A4-g5---A4-E5-D5-"
 m2: .string "--D4-RRA4-D4---D5---E5-E4-RRA4-E4---E5---g5-g4-RRA5---g4-g5---E5-E4-RRA4-A3---E5---D5-D4-RRA4---D4-g5---E5-E4-RRA4---E4-G5---g5-g4-A5-A4-D6-D5-E6-E5-A5--A4--G5-g5-A4-E5---;"
+endSong: .string "D5-b4d5C5RB4Rb4RA4RG4Rg4RD5-RRD4--."
+
 
 board0: .string  "|---------------------------------------------|", 0xD, 0xA
 board1: .string  "|*********************************************|", 0xD, 0xA
@@ -19,14 +21,45 @@ board13: .string "|                                             |", 0xD, 0xA
 board14: .string "|......................&......................|", 0xD, 0xA
 board15: .string "|---------------------------------------------|", 0xD, 0xA, 0x0
 language: .string "1234567890qwertyuiopasdfghjklzxcvbnm!@#$%^&*()_", 0xD, 0xA, 0
+gameoverScreen: .string " .d8888b.        d8888888b     d8888888888888 ", 0xD, 0xA
+gameover1: .string "d88P  Y88b      d888888888b   d8888888        ", 0xD, 0xA
+gameover2: .string "888    888     d88P88888888b.d88888888        ", 0xD, 0xA
+gameover3: .string "888           d88P 888888Y88888P8888888888   ", 0xD, 0xA
+gameover4: .string "888  88888   d88P  888888 Y888P 888888       ", 0xD, 0xA
+gameover5: .string "888    888  d88P   888888  Y8P  888888       ", 0xD, 0xA
+gameover6: .string "Y88b  d88P d8888888888888   v   888888       ", 0xD, 0xA
+gameover7: .string "  Y8888P88d88P     888888       8888888888888 ", 0xD, 0xA
+gameover8: .string "                                               ", 0xD, 0xA
+gameover9: .string " .d88888b. 888     88888888888888888888b.  ", 0xD, 0xA
+gameover10: .string "d88P   Y88b888     888888       888   Y88b ", 0xD, 0xA
+gameover11: .string "888     888888     888888       888    888 ", 0xD, 0xA
+gameover12: .string "888     888Y88b   d88P8888888   888   d88P ", 0xD, 0xA
+gameover13: .string "888     888 Y88b d88P 888       8888888P   ", 0xD, 0xA
+gameover14: .string "888     888  Y88o88P  888       888 T88b   ", 0xD, 0xA
+gameover15: .string "Y88b. .d88P   Y888P   888       888  T88b  ", 0xD, 0xA
+gameover16: .string "  Y88888P      Y8P    8888888888888   T88b ", 0xD, 0xA, 0x0
+
+finalScoretxt: .string " Your final score was: ", 0x0
+finalScoreString: .word 0x0
+finalScoreBuffer: .word 0x0
+froggie: .string "     ___      ___", 0xD, 0xA
+froggie1: .string "    /   \----/   \ ", 0xD, 0xA
+froggie2: .string "   |-----|  |-----|", 0xD, 0xA
+froggie3: .string "   /\_0_/    \_0_/\ ", 0xD, 0xA
+froggie4: .string " -|      o  o      |-", 0xD, 0xA
+froggie5: .string "/  \______________/  \ ", 0xD, 0xA
+froggie6: .string "\ \ |   |    |   | / / ", 0xD, 0xA
+froggie7: .string " ww ooooo----ooooo ww ", 0xD, 0xA, 0xD, 0xA
+prompttoCont: .string "Press ENTER to return to menu", 0x0
 frogLocation: .word 0x2C5
 previousFrogValue: .word 0x2E
 previousFrogLocation: .word 0x41D
 settings: .word 0x0
 PLAYER_SCORE: .word 0x0
 GAME_TIMER: .word 0x3C
+LEVEL_BASE_TIME: .word 0x3C
 InfoDisplay: .string "Your Current Score is: ", 0x0
-PLAYER_SCORE_ASCII: .word 0x0 ; this is the player's score, this should be displayed once the game is over
+PLAYER_SCORE_ASCII: .word 0x0 ; this is the players score, this should be displayed once the game is over
 PLAYER_SCORE_ASCII_BUFFER: .word 0x0 ;buffer for player score
 timerDisplay: .string "Time Left: ",0x0
 GAME_TIMER_ASCII: .word 0x0
@@ -35,6 +68,7 @@ GAME_STATUS: .word 0x0 ; if game is running, this value is 0, if the game is ove
 BOARD_UPDATE: .byte 0x0 ; if this is not 0 the game moves the obstacles on the board
 FROG_LIVES: .byte 0x4 ; the game lives, if this reaches 0 the game is over
 WIN_COUNTER: .byte 0x0 ; this counter is incremented every time the player gets to the other end of the board safely, should be reset when it reaches 3, and the game should "level up"
+GAME_LEVEL: .byte 0x0; what level you're on
 	.text
 	.global lab7_library
 	.global uart_init
@@ -70,6 +104,8 @@ WIN_COUNTER: .byte 0x0 ; this counter is incremented every time the player gets 
 	.global mode
 	.global update_game_information
 	.global convertToAscii
+	.global printGameOver
+	.global resetFrogLives
 songPtr: .word song
 boardPtr: .word board0
 languagePtr: .word language
@@ -89,8 +125,57 @@ WIN_COUNTER_PTR: .word WIN_COUNTER
 INFO_DISPLAY_PTR: .word InfoDisplay
 TIMER_DISPLAY_PTR: .word timerDisplay
 modePtr: .word 0x20005000
+g0PTR: .word gameoverScreen
+finalScorePTR: .word finalScoretxt
+froggiePTR: .word froggie
+fSSPTR: .word finalScoreString
+GAME_LEVEL_PTR: .word GAME_LEVEL
+LEVEL_BASE_TIME_PTR: .word LEVEL_BASE_TIME
 ;-------------------------------------------------------------
 
+awardPoints: ; gives points to the player from r0; pity the player, feed him well my child
+	STMFD SP!, {lr, r1-r12}
+	LDR r4, PLAYER_SCORE_PTR
+	LDRB r1, [r4]
+	ADD r1, r1, r0
+	STRB r1, [r4]
+	LDMFD SP!, {lr, r1-r12}
+	BX lr
+resetFrogLives:
+	STMFD SP!, {lr, r0-r12}
+	LDR r4, FROG_LIVES_PTR
+	LDRB r1, [r4]
+	MOV r1, #4
+	STRB r1, [r4]
+
+	LDR r0, PLAYER_SCORE_ASCII_PTR
+	MOV r1, #0x8
+	MOV r2, #0x0
+	BL fill_string
+	LDMFD SP!, {lr, r0-r12}
+	BX lr
+
+printGameOver:
+	STMFD SP!, {lr, r0-r12}
+	LDR r1, fSSPTR
+	MOV r0, r2
+	BL convertToAscii
+	MOV r0, #0xC
+	BL output_character
+	LDR r4, g0PTR
+	BL output_string
+	LDR r4, finalScorePTR
+	MOV r0, #0xA
+	BL output_character
+	MOV r0, #0xD
+	BL output_character
+	BL output_string
+	LDR r4, fSSPTR
+	BL output_string
+	LDR R4, froggiePTR
+	BL output_string
+	LDMFD SP!, {lr, r0-r12}
+	BX lr
 levelUp:
 	STMFD SP!, {lr, r0-r12}
 	MOV r4, #0x2000
@@ -101,30 +186,37 @@ levelUp:
 	SUB r1, r1, r2
 	STR r1, [r4, #0x28]
 	;reset board
-
-
+	LDR r4, GAME_LEVEL_PTR
+	MOV r1, #0x0
+	STRB r1, [r4]
+	BL resetFrog
+	LDR r4, LEVEL_BASE_TIME_PTR
+	LDR r1, [r4]
+	SUB r1, r1, #10
+	STR r1, [r4]
 	LDMFD SP!, {lr, r0-r12}
 	BX lr
 update_game_information: ; r0 - game status, r1 - game timer, r2 - Player score \\ returns current values in the same regs
 						; if -1 is put into a register, the info isn't updated
 	STMFD SP!, {lr, r3-r12}
+	LDR r4, GAME_STATUS_PTR
 	CMP r0, #-1
 	BEQ noStatusUpdate
-	LDR r4, GAME_STATUS_PTR
+
 	STRB r0, [r4]
 noStatusUpdate:
 	LDRB r0, [r4]
-
+	LDR r4, GAME_TIMER_PTR
 	CMP r1, #-1
 	BEQ noTimerUpdate
-	LDR r4, GAME_TIMER_PTR
+
 	STRB r1, [r4]
 noTimerUpdate:
 	LDRB r1, [r4]
-
+	LDR r4, PLAYER_SCORE_PTR
 	CMP r2, #-1
 	BEQ noScoreUpdate
-	LDR r4, PLAYER_SCORE_PTR
+
 	STRB r2, [r4]
 noScoreUpdate:
 	LDRB r2, [r4]
@@ -153,7 +245,7 @@ Uart0Handler:
 	MOVT r4, #0x4003
 	BL read_character
 	CMP r0, #'m'
-	BNE notR
+	BNE notM
 	LDR r1, [r4, #0xC] ;toggle timer 0
 	EOR r1, r1, #0x1
 	STR r1, [r4, #0xC]
@@ -164,7 +256,7 @@ Uart0Handler:
 	STR r1, [r4, #0xC]
 
 
-notR:
+notM:
 
 	CMP r0, #'1'
 	BNE not1
@@ -185,7 +277,7 @@ not2:
 	SUB r0, r0, #0x30
 	LDR r1, modePtr
 	STRB r0, [r1]
-
+;-----------------------
 not3:
 	CMP r0, #'0'
 	BNE not0
@@ -193,8 +285,12 @@ not3:
 	LDR r1, modePtr
 	STRB r0, [r1]
 not0:
-
-
+	CMP r0, #0xD
+	BNE notEnter
+	MOV r0, #0xF
+	LDR r1, modePtr
+	STRB r0, [r1]
+notEnter:
 	MOV r4, #0x0000
 	MOVT r4, #0x4003
 
@@ -308,7 +404,7 @@ Timer0Handler: ;timer for game clock (1 second per cycle)
 	MOV r2, #-1
 	BL update_game_information
 	CMP r0, #0
-	BEQ gameStarted
+	BNE gameNotStarted
 
 
 
@@ -327,14 +423,23 @@ gameStarted:
 	LDRB r1, [r4]
 	CMP r1, #0x0
 	BEQ noMusic
-
+gameNotStarted:
 	BL nextNote
-
+	B noMusic
 timesUp:
 	LDR r4, GAME_STATUS_PTR
 	LDRB r1, [r4]
 	MOV r1, #0x1
-	STRB r1, [r4] ;set game status to over if time runs out
+	STRB r1, [r4] ;lose life if time runs out
+	MOV r4, #0x2000
+	MOVT r4, #0x4003
+	LDR r1, [r4, #0xC] ;toggle timer2 off
+	BIC r1, r1, #0x1
+	STR r1, [r4, #0xC]
+
+	MOV r0, #0xC
+	BL output_character
+
 
 noMusic:
 
@@ -374,7 +479,26 @@ Timer2Handler: ;Main handler
 	ORR r1, r1, #0x1
 	STRB r1, [r4, #0x24]
 
+	BL checkForFrog
+	CMP r0, #0x2
+	BNE notWinning
+	LDR r4, WIN_COUNTER_PTR
+	LDRB r1, [r4]
+	ADD r1, r1, #1
+	STRB r1, [r4]
+	CMP r1, #0x3
+	BLT notLevelUp
+	BL levelUp
 
+
+notLevelUp:
+
+	LDR r4, LEVEL_BASE_TIME_PTR
+	LDR r1, [r4]
+	LDR r4, GAME_TIMER_PTR
+	STR r1, [r4] ; set the game back to base time if you make it to other side
+	BL resetFrog
+notWinning:
 	LDR r4, BOARD_UPDATE_PTR
 	LDRB r0, [r4]
 	LDR r4, boardPtr
@@ -589,6 +713,20 @@ restartSong:
 	BL playNote ; gets the next note from string in memory
 	MOV r4, #0x1000
 	MOVT r4, #0x4003
+	CMP r0, #0xC
+	BNE dontStop
+	MOV r4, #0x0000
+	MOVT r4, #0x4003
+	LDR r1, [r4, #0xC] ;disable timer 1
+	BIC r1, r1, #0x1
+	STR r1, [r4, #0xC]
+	MOV r4, #0x1000
+	MOVT r4, #0x4003
+	LDR r1, [r4, #0xC] ;disable timer 1
+	BIC r1, r1, #0x1
+	STR r1, [r4, #0xC]
+	B timerOff
+dontStop:
 	CMP r0, #0x2D
 	ITT EQ
 	ADDEQ r6, r6, #0x1
@@ -645,9 +783,15 @@ redrawBoard:	;shifts strings and redraws board
 	LDR r4, TIMER_DISPLAY_PTR
 	BL output_string
 	;TODO: output timer in string form here
+	LDR r0, GAME_TIMER_ASCII_PTR
+	MOV r0, r1
+	MOV r1, #0x2
+	MOV r2, #0x0
+	BL fill_string
 	LDR r2, GAME_TIMER_PTR
 	LDRB r0, [r2]
 	LDR r1, GAME_TIMER_ASCII_PTR
+
 	BL convertToAscii
 	LDR r4, GAME_TIMER_ASCII_PTR
 	BL output_string
@@ -999,20 +1143,7 @@ check_valid_location:
 	LDMFD SP!, {lr, r3-r12}
 	BX lr
 
-output_7_seg: ;puts text on the screen take what ever value is in r0 and put it on the screen
-	STMFD SP!,{lr, r1-r12}	; Store register lr on stack
-	MOV r1, #0x8000		;SSI REG
-	MOVT r1, #0x4000
 
-	MOV r2, #0
-NOOUTPUT7SEG:
-	LDR r2,[r1, #0xC]		;load SSISR data to r2
- 	AND r2,r2, #0x8	;isolate bit to check if SSI receive is full
- 	CMP	r2,#0x0	;check if r3 is 0
- 	BNE NOOUTPUT7SEG	;if not 0 branch to NOOUTPUT7SEG
- 	STRB r0,[r1, #0x8]			;if 0 store byte in transmit register
-	LDMFD sp!, {lr, r1-r12}
-	BX lr
 putBackFrog:
 	STMFD SP!,{lr, r0-r12}
 	LDR r5, frogLocationPtr
@@ -1075,6 +1206,7 @@ resetFrog:
 	STR r1,[r7]
 	LDMFD sp!, {lr, r0-r12}
 	BX lr
+
 checkForFrog:
 	STMFD SP!,{lr, r1-r12}
 	MOV r0, #-1

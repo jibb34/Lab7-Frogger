@@ -10,6 +10,10 @@ rng:
 	MOV r4, #0x0000
 	MOVT r4, #0x4003
 	LDRB r1, [r4, #0x50]
+	MOV r4, #0x2000
+	MOVT r4, #0x4003
+	LDRB r3, [r4, #0x50]
+	ADD r1, r1, r3
 	BL div_and_mod
 	LDMFD SP!, {lr, r1-r12}
 	BX lr

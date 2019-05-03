@@ -24,6 +24,7 @@ hiscores8: .string " 8>-------- : ----",0xD, 0xA
 hiscores9: .string " 9>-------- : ----",0xD, 0xA
 hiscores10: .string "10>-------- : ----",0xD, 0xA, 0x0
 
+
 	.text
 	.global Lab7
 	.global lab7_library
@@ -53,6 +54,9 @@ hiscores10: .string "10>-------- : ----",0xD, 0xA, 0x0
 	.global SPI_init
 	.global output_7_seg
 	.global update_game_information
+	.global convertToAscii
+	.global printGameOver
+	.global resetFrogLives
 menuPtr: .word menu
 instPtr: .word inst
 hiscoreStringPtr: .word hiscoreString
@@ -64,9 +68,12 @@ Lab7:				;diplays the prompt and initializes the interrupts then goes into an
 					;infinate loop until the endgame variable is set to 0
 					;NOTE: baud rate must be set to 460800
 	STMFD sp!, {lr}
+restartGame:
+	MOV r6, #0x0
 	MOV r0, #1
 	MOV r1, #-1
 	MOV r2, #-1
+
 	BL update_game_information
 	BL uart_init
 
@@ -83,7 +90,6 @@ Lab7:				;diplays the prompt and initializes the interrupts then goes into an
 
 mainMenu:
 
-	ADD r6, r6, #0x1
 	MOV r0, #0xC
 	BL output_character ; clears screen
 	LDR r4, menuPtr
@@ -158,7 +164,54 @@ startGame:
 	BL output_character ; clears screen
 
 infLoop:
-
+	MOV r0, #-1
+	MOV r1, #-1
+	MOV r2, #-1
+	BL update_game_information
+	CMP r0, #1
+	BEQ gameoverPal
 	B infLoop
+
+
+gameoverPal:
+	MOV r0, #0x2
+	BL illuminate_RGB_LED
+	MOV r0, #0x0
+	BL illuminate_LEDs
+	BL printGameOver
+
+	;disable all timers:
+	MOV r4, #0x2000
+	MOVT r4, #0x4003
+	LDR r1, [r4, #0xC] ;toggle timer2 off
+	BIC r1, r1, #0x1
+	STR r1, [r4, #0xC]
+
+	;reset timer0's speed
+	MOV r4, #0x0
+	MOVT r4, #0x4003
+	LDR r1, [r4, #0x28]
+	MOV r1, #0x8480
+	MOVT r1, #0x1E ; initial clock speed (.125 seconds)
+	STR r1, [r4, #0x28]
+	MOV r6, #0x158
+g0Loop:
+	LDR r4, modePtr
+	LDRB r1, [r4]
+	CMP r1, #0xF
+	BEQ restartGameProcedure
+	B g0Loop
+
+restartGameProcedure:
+
+	BL resetFrogLives
+	MOV r0, #1
+	MOV r1, #0x3C
+	MOV r2, #0
+	BL update_game_information
+
+	B restartGame
+
 	LDMFD sp!, {lr}
 	mov pc, lr
+.end
