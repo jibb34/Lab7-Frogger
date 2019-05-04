@@ -183,7 +183,6 @@ stabilize3:
 	ADD r0, #0x1
 	CMP r0, r1
 	BLT stabilize3
-
 	;temporarily disable timer for initilization process
 	LDR r1, [r4, #0xC]
 	BIC r1, r1, #0x1
@@ -221,8 +220,6 @@ stabilize3:
 	BX lr
 GPIO_init:		;initializes GPIO
 	STMFD SP!,{lr, r0-r12}
-	;TODO: init clock
-
    	;init clock:
    	MOV r5, #0xE000
    	MOVT r5, #0x400F
@@ -230,8 +227,6 @@ GPIO_init:		;initializes GPIO
    	ORR r3, r3, #0x2F ;(b'00101111) bitmap XGFEDCBA
    	STRB r3, [r5, #0x608]; enables clock for ports A, B, C, D, F
    	MOV r6, #0xFF
-
-
  	MOV r4, #0x5000; address for port B
  	MOVT r4, #0x4000
  	MOV r8, #0x7000; address for port D
@@ -243,7 +238,6 @@ GPIO_init:		;initializes GPIO
 	MOV r10, #0x6000
 	MOVt r10, #0x4000; address for port C
 	; init Ports:
-
    ;Port B
   	LDRB r1, [r4, #0x400]
   	ORR r1, #0xF
@@ -252,14 +246,12 @@ GPIO_init:		;initializes GPIO
   	ORR r1, #0xF
 	STRB r1, [r4, #0x51C] ; enables led pins to digital
 	;Port F
-
 	LDRB r1, [r7, #0x400]
 	ORR r1, #0x1E
 	STRB r1, [r7, #0x400]; set RGB LED pins as output
 	LDRB r1, [r7, #0x51C]
 	ORR r1, #0x1E
 	STRB r1, [r7, #0x51C] ; enables RGB LED pins to digital
-
 	;Port C
 	LDRB r1, [r10, #0x400]
 	ORR r1, #0x10
@@ -267,7 +259,6 @@ GPIO_init:		;initializes GPIO
 	LDRB r1, [r10, #0x51C]
 	ORR r1, #0x10
 	STRB r1, [r10, #0x51C] ; enables speaker pin to digital
-
 	;Port D init
 	LDRB r1, [r8, #0x51C]
 	ORR r1, r1, #0xF
@@ -275,8 +266,6 @@ GPIO_init:		;initializes GPIO
  	LDRB r1, [r9, #0x400]
 	ORR r1, #0xF
    	STRB r1, [r8, #0x400] ;sets push button pins as output
-
-
 	;Port A
 	LDRB r1, [r9, #0x51C]
 	ORR r1, r1, #0x3C;(b'0011 1100)(xx(a5)(a4)(a3)(a2)xx
@@ -286,88 +275,6 @@ GPIO_init:		;initializes GPIO
 	STRB r1, [r9, #0x400] ; sets kip to input
 	LDMFD sp!, {lr, r0-r12}
 	BX lr
-
-SPI_init:
-
-	STMFD SP!, {r0-r12, lr}
-	MOV r4, #0xE000 ; \\ENABLE SSI MODULE 0
-	MOVT r4, #0x400F
-	LDRB r1, [r4, #0x61C]
-	ORR r1, r1, #0x1
-	STRB r1, [r4, #0x61C]
-
-	MOV r4, #0xE000 ; \\ENABLE CLK FOR GPIOA
-	MOVT r4, #0x400F
-	LDRB r1, [r4, #0x608]
-	ORR r1, r1, #0x1
-	STRB r1, [r4, #0x608]
-
-	MOV r4, #0x4000 ; \\SET GPIO AFSEL ;must be deselected when we want to access gpio buttons
-	MOVT r4, #0x4000
-	LDRB r1, [r4, #0x420]
-	ORR r1, r1, #0x3C
-	STRB r1, [r4, #0x420]
-
-	MOV r4, #0x4000 ; \\CONFIGURE PMCn FIELDS IN GPIOCTRL
-	MOVT r4, #0x4000
-	LDRB r1, [r4, #0x52C]
-	ORR r1, r1, #0x2 ; not sure of this value
-	STRB r1, [r4, #0x52C]
-
-	MOV r4, #0xE000 ; \\ENABLE SSI MODULE 0
-	MOVT r4, #0x400F
-	LDRB r1, [r4, #0x61C]
-	ORR r1, r1, #0x1
-	STRB r1, [r4, #0x61C]
-
-	MOV r4, #0x4000 ; \\SET PINS TO DIGITAL
-	MOVT r4, #0x4000
-	LDRB r1, [r4, #0x51C]
-	ORR r1, r1, #0x3C
-	STRB r1, [r4, #0x51C]
-
-	;configuring frame format:
-
-	MOV r4, #0x8000 ; \\CLEAR SSE BIT IN SSICR1
-	MOVT r4, #0x4000
-	LDRB r1, [r4, #0x61C]
-	BIC r1, r1, #0x2
-	STRB r1, [r4, #0x61C]
-
-	MOV r4, #0x8000 ; \\SET TO SLAVE/MASTER MODE
-	MOVT r4, #0x4000
-	LDRB r1, [r4, #0x4]
-	MOV r1, #0x0
-	STRB r1, [r4, #0x61C]
-
-	MOV r4, #0x8000 ; \\CONFIGURE SSICC TO USE SYS CLOCK
-	MOVT r4, #0x4000
-	LDRB r1, [r4, #0xFC8]
-	BIC r1, r1, #0xF
-	STRB r1, [r4, #0xFC8]
-
-	MOV r4, #0x8000 ; \\SET PRESCALE DIVISOR
-	MOVT r4, #0x4000
-	LDRB r1, [r4, #0x10]
-	ORR r1, r1, #0x2
-	STRB r1, [r4, #0x10]
-
-	MOV r4, #0x8000 ; \\SET SSICR0 FOR MODE, STANDARD, AND DATA SIZE
-	MOVT r4, #0x4000
-	LDRB r1, [r4]
-	MOV r2, #0x078F
-	ORR r1, r1, r2  ; SCR = 7, SPH = 1, SPO = 0, fSPI, 16b data size
-	STRB r1, [r4]
-
-	MOV r4, #0x8000 ; \\SET SSE BIT IN SSICR1
-	MOVT r4, #0x4000
-	LDRB r1, [r4, #0x61C]
-	ORR r1, r1, #0x2
-	STRB r1, [r4, #0x61C]
-	LDMFD SP!, {r0-r12, lr}
-	BX lr
-
-
 
 uart_init:
 	STMFD SP!,{r0-r12,lr}	; Store register lr on stack

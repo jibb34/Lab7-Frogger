@@ -20,7 +20,6 @@ board12: .string "|            ####    ####      ####      #### |", 0xD, 0xA
 board13: .string "|   C     C          C    C             C     |", 0xD, 0xA
 board14: .string "|......................&......................|", 0xD, 0xA
 board15: .string "|---------------------------------------------|", 0xD, 0xA, 0x0
-language: .string "1234567890qwertyuiopasdfghjklzxcvbnm!@#$%^&*()_", 0xD, 0xA, 0
 gameoverScreen: .string " .d8888b.        d8888888b     d8888888888888 ", 0xD, 0xA
 gameover1: .string "d88P  Y88b      d888888888b   d8888888        ", 0xD, 0xA
 gameover2: .string "888    888     d88P88888888b.d88888888        ", 0xD, 0xA
@@ -110,8 +109,6 @@ GAME_LEVEL: .byte 0x0; what level you're on
 	.global setLevelTime
 songPtr: .word song
 boardPtr: .word board0
-languagePtr: .word language
-settingsPtr: .word settings
 frogLocationPtr: .word frogLocation
 previousFrogValuePtr: .word previousFrogValue
 previousFrogLocationPtr: .word previousFrogLocation
@@ -168,9 +165,9 @@ notDed:
 awardPoints: ; gives points to the player from r0; pity the player, feed him well my child
 	STMFD SP!, {lr, r1-r12}
 	LDR r4, PLAYER_SCORE_PTR
-	LDRB r1, [r4]
+	LDR r1, [r4]
 	ADD r1, r1, r0
-	STRB r1, [r4]
+	STR r1, [r4]
 	LDMFD SP!, {lr, r1-r12}
 	BX lr
 resetFrogLives:
@@ -227,8 +224,8 @@ levelUp:
 	LDR r1, [r4]
 	SUB r1, r1, #10
 	STR r1, [r4]
-	LDR r4, GAME_TIMER_PTR
-	STR r1, [r4]
+	MOV r0, #250
+	BL awardPoints
 	LDMFD SP!, {lr, r0-r12}
 	BX lr
 update_game_information: ; r0 - game status, r1 - game timer, r2 - Player score \\ returns current values in the same regs
@@ -262,153 +259,163 @@ noScoreUpdate:
 	BX lr
 
 Uart0Handler:
-	STMFD SP!, {lr, r0-r12}
-	;clear UART interrupt
-	MOV r4, #0xC000
-	MOVT r4, #0x4000
-	LDRB r1, [r4, #0x044]
-	ORR r1, r1, #0x10
-	STRB r1, [r4, #0x044]
+		STMFD SP!, {lr, r0-r12}
+		;clear UART interrupt
+		MOV r4, #0xC000
+		MOVT r4, #0x4000
+		LDRB r1, [r4, #0x044]
+		ORR r1, r1, #0x10
+		STRB r1, [r4, #0x044]
 
 
-	LDR r0, GAME_STATUS_PTR
-	LDRB r0,[r0]
-	CMP r0, #0
-	BEQ gameRunning
+		LDR r0, GAME_STATUS_PTR
+		LDRB r0,[r0]
+		CMP r0, #0
+		BEQ gameRunning
 
 
-	MOV r4, #0x0000
-	MOVT r4, #0x4003
-	BL read_character
-	CMP r0, #'m'
-	BNE notM
-	LDR r1, [r4, #0xC] ;toggle timer 0
-	EOR r1, r1, #0x1
-	STR r1, [r4, #0xC]
-	MOV r4, #0x1000
-	MOVT r4, #0x4003
-	LDR r1, [r4, #0xC] ;timer 1 off
-	BIC r1, r1, #0x1
-	STR r1, [r4, #0xC]
+		MOV r4, #0x0000
+		MOVT r4, #0x4003
+		BL read_character
+		CMP r0, #'m'
+		BNE notM
+		LDR r1, [r4, #0xC] ;toggle timer 0
+		EOR r1, r1, #0x1
+		STR r1, [r4, #0xC]
+		MOV r4, #0x1000
+		MOVT r4, #0x4003
+		LDR r1, [r4, #0xC] ;timer 1 off
+		BIC r1, r1, #0x1
+		STR r1, [r4, #0xC]
 
 
 notM:
 
-	CMP r0, #'1'
-	BNE not1
-	SUB r0, r0, #0x30
-	LDR r1, modePtr
-	STRB r0, [r1]
-;----------------------
+		CMP r0, #'1'
+		BNE not1
+		SUB r0, r0, #0x30
+		LDR r1, modePtr
+		STRB r0, [r1]
+	;----------------------
 not1:
-	CMP r0, #'2'
-	BNE not2
-	SUB r0, r0, #0x30
-	LDR r1, modePtr
-	STRB r0, [r1]
-;---------------------
+		CMP r0, #'2'
+		BNE not2
+		SUB r0, r0, #0x30
+		LDR r1, modePtr
+		STRB r0, [r1]
+	;---------------------
 not2:
-	CMP r0, #'3'
-	BNE not3
-	SUB r0, r0, #0x30
-	LDR r1, modePtr
-	STRB r0, [r1]
-;-----------------------
+		CMP r0, #'3'
+		BNE not3
+		SUB r0, r0, #0x30
+		LDR r1, modePtr
+		STRB r0, [r1]
+	;-----------------------
 not3:
-	CMP r0, #'0'
-	BNE not0
-	SUB r0, r0, #0x30
-	LDR r1, modePtr
-	STRB r0, [r1]
+		CMP r0, #'0'
+		BNE not0
+		SUB r0, r0, #0x30
+		LDR r1, modePtr
+		STRB r0, [r1]
 not0:
-	CMP r0, #0xD
-	BNE notEnter
-	MOV r0, #0xF
-	LDR r1, modePtr
-	STRB r0, [r1]
+		CMP r0, #0xD
+		BNE notEnter
+		MOV r0, #0xF
+		LDR r1, modePtr
+		STRB r0, [r1]
 notEnter:
-	MOV r4, #0x0000
-	MOVT r4, #0x4003
+		MOV r4, #0x0000
+		MOVT r4, #0x4003
 
-	B notValidKey
+		B notValidKey
 
 gameRunning:
 
-	BL read_character	;read UART value
+		BL read_character	;read UART value
 
-	MOV r3, #0x0
-	CMP r0, #0x77		;if UART value is w do the following:
-	BNE notW
-	SUB r3, r3, #49
+		MOV r3, #0x0
+		CMP r0, #0x77		;if UART value is w do the following:
+		BNE notW
+		SUB r3, r3, #49
+
+		STMFD SP!, {r0}
+		MOV r0, #10
+		BL awardPoints
+		LDMFD SP!, {r0}
+
 notW:
-	CMP r0, #0x61		;if UART value is A do the following:
-	BNE notA
-	SUB r3, r3, #1
+		CMP r0, #0x61		;if UART value is A do the following:
+		BNE notA
+		SUB r3, r3, #1
 
 
 notA:
 
-	CMP r0, #0x73
-	BNE notS
-	ADD r3, r3, #49
+		CMP r0, #0x73
+		BNE notS
+		ADD r3, r3, #49
+		STMFD SP!, {r0}
+		BL checkForFrog
+		CMP r0, #14
+		BEQ isFirstLine
+		MOV r0, #0
+		SUB r0, r0, #10
+		BL awardPoints
+isFirstLine:
+		LDMFD SP!, {r0}
 notS:
-	CMP r0, #0x64
-	BNE notD
-	ADD r3, r3, #1
+		CMP r0, #0x64
+		BNE notD
+		ADD r3, r3, #1
 notD:
-	CMP r0,#'l'
-	IT EQ
-	BLEQ levelUp
-	BNE notL
+		CMP r0,#'l'
+		IT EQ
+		BLEQ levelUp
+		BNE notL
 
 notL:
-	CMP r3,#0
-	BEQ notValidKey
+		CMP r3,#0
+		BEQ notValidKey
 
-	;get frog location
-	LDR r4, boardPtr
-	LDR r9, frogLocationPtr
-	LDR r10, [r9]
-	;calculate new frog location
-	ADD r5, r10, r3
-	;get value at new frog location
-	LDRB r2,[r4,r5]
-	;check if its a valid postion
-	BL check_valid_location
-	;replace frog with prevous value
-	LDR r8, previousFrogValuePtr
-	LDR r11, [r8]
-	STRB r11, [r4,r10]
+		;get frog location
+		LDR r4, boardPtr
+		LDR r9, frogLocationPtr
+		LDR r10, [r9]
+		;calculate new frog location
+		ADD r5, r10, r3
+		;get value at new frog location
+		LDRB r0,[r4,r5]
+		MOV r2, r0
+		;check if its a valid postion
+		BL check_valid_location
+		;replace frog with prevous value
+		LDR r8, previousFrogValuePtr
+		LDR r11, [r8]
+		STRB r11, [r4,r10]
 
-	CMP r0, #0
-	BNE notHittingObstacle
-
-	BL resetFrog
-	B hittingObstacle
+		CMP r0, #0
+		BNE notHittingObstacle
+		BL frogLifeLost
+		B hittingObstacle
 
 
 notHittingObstacle:
 
-	;save value at new frog location to previousFrogValue
-	STR r2,[r8]
-	;set previousFrogLocation to frogLocation
-	LDR r8, previousFrogLocationPtr
-	STR r10,[r8]
-	;set new frog location to frog location
-	STR r5, [r9]
-	;store frog in new location
-	MOV r2,#0x26
-	STRB r2,[r4,r5]
-	B notValidKey
+		;save value at new frog location to previousFrogValue
+		STR r2,[r8]
+		;set previousFrogLocation to frogLocation
+		LDR r8, previousFrogLocationPtr
+		STR r10,[r8]
+		;set new frog location to frog location
+		STR r5, [r9]
+		;store frog in new location
+		MOV r2,#0x26
+		STRB r2,[r4,r5]
+		B notValidKey
 hittingObstacle:
-
-
-	BL frogLifeLost
 notValidKey:
-
-
-	LDMFD SP!, {lr, r0-r12}
-	BX lr
+		LDMFD SP!, {lr, r0-r12}
+		BX lr
 
 Timer0Handler: ;timer for game clock (1 second per cycle)
 	STMFD SP!, {lr, r3-r5, r7-r11}
@@ -425,10 +432,6 @@ Timer0Handler: ;timer for game clock (1 second per cycle)
 	BL update_game_information
 	CMP r0, #0
 	BNE gameNotStarted
-
-
-
-
 
 gameStarted:
 	LDR r4, GAME_TIMER_PTR
@@ -457,17 +460,9 @@ timesUp:
 	LDR r1, [r4, #0xC] ;toggle timer2 off
 	BIC r1, r1, #0x1
 	STR r1, [r4, #0xC]
-
 	MOV r0, #0xC
 	BL output_character
-
-
 noMusic:
-
-
-
-
-
 	LDMFD SP!, {lr, r3-r5, r7-r11}
 	BX lr
 
@@ -486,7 +481,6 @@ Timer1Handler: ; controls speaker pitch
 	LDRB r0, [r4, #0x3FC]
 	EOR r0, #0x10
 	STRB r0, [r4, #0x3FC]
-
 	LDMFD SP!, {lr, r0-r12}
 	BX lr
 
@@ -502,13 +496,11 @@ Timer2Handler: ;Main handler
 	; check if frog reaches other end here:///
 	;needs to check for frog, if its in last row, increment win counter, then check if win counter is 3
 	;if it is, call levelUp function
-
 	LDR r4, BOARD_UPDATE_PTR
 	LDRB r0, [r4]
 	LDR r4, boardPtr
   	CMP r0, #0
 	BNE noWaterUpdate
-
 	STMFD SP!, {lr, r0-r3}
 	MOV r0, #3
 	MOV r1, #7
@@ -519,7 +511,6 @@ Timer2Handler: ;Main handler
 
 noWaterUpdate:
 	BL removeFrog
-
 	CMP r0, #0
 	BNE noTruckUpdate
 	MOV r0, #8
@@ -537,8 +528,6 @@ truckLinesFinished:
 	CMP r8, #3
 	BNE truckLinesFinished
 noTruckUpdate:
-
-
 	MOV r0, #9
 	MOV r1, #10
 	MOV r2, #0
@@ -554,30 +543,14 @@ carLinesFinished:
 	CMP r8, #3
 	BNE carLinesFinished
 	BL putBackFrog
-
 	MOV r4, #0x2000
 	MOVT r4, #0x4003
 	LDRB r1, [r4, #0x48]
 	ORR r1, r1, #0x0
 	STRB r1, [r4, #0x48]
-
-
 	BL checkWinCondition
 	BL spawnFly
 	BL redrawBoard
-
-	;TODO: update frog position, flip boardupdate bit, shift game rows if boardupdate is true, redraw game board
-
-	; if valid position for frog, continue and add to score, else subtract life
-
-	;if life == 0, set game over to true
-
-	;is position a fly? if so, add to score and replace fly
-
-	; is a winning tile? add to score, add to win counter, restart game
-
-		; if win counter == 3, increase clock period by .05 seconds
-
 ;stabliliztion:
 	;flip board update bit
 	LDR r4, BOARD_UPDATE_PTR
@@ -601,11 +574,8 @@ PortAHandler:   ;if keypad gets a input this subroutine will check the value giv
 	;disable interrupts
 	MOV r3, #0xE000
 	MOVT r3, #0xE000
-	STRB r2, [r3, #0x180]
-	ORR r2, r2, #0x1F
-	LDRB r2, [r3, #0x180]
-	MOV r0, #0x1
-	BL illuminate_RGB_LED
+	MOV r2, #1
+	STR r2, [r3, #0x180]
 	;do stuff on keyboard press here: -----------------------------------------
 	BL read_from_keypad
 	MOV r1, #0x00DF
@@ -614,10 +584,8 @@ delayLoop:				;delay to syncronize buttons
 	SUB r1, r1, #1
 	CMP r1, #0
 	BNE delayLoop
-
 	BL button_table		; run button_table
 	BL buttonOptions
-
 	;-------------------------------------------------------
 	MOV r4, #0x4000
 	MOVT r4, #0x4000
@@ -625,44 +593,46 @@ delayLoop:				;delay to syncronize buttons
 	LDR r1, [r4, #0x41C]
 	ORR r1, #0x3C
 	STR r1, [r4, #0x41C]
-
 	;enable interrupts again
-	STRB r2, [r3, #0x100]
-	ORR r2, r2, #0x1
-	LDRB r2, [r3, #0x100]
+	ORR r2, r2, #1
+	STR r2, [r3, #0x100]
 	LDMFD SP!, {lr, r0-r12}
 	BX lr
 
 buttonOptions:
-	STMFD SP!, {lr, r0-r12}
-	LDR r4, settingsPtr
+	STMFD SP!, {lr, r1-r12}
+	LDR r4, GAME_STATUS_PTR
 	LDR r3, [r4]
 	CMP r0, #0x31	;if button 1(pause) is clicked, disable all interrupts except gpio
 	BNE notPause
-	MOV r5, #0x1
-	AND r5,r5,r3
-	CMP r5,#0
-	BNE unPause
-	ORR r3, #0x1
+	CMP r3,#0
+	BEQ pause
+	MOV r3, #0x0
+	STR r3, [r4]
+	MOV r4, #0xE000
+	MOVT r4, #0xE000
+	LDR r1, [r4, #0x100]
+	MOV r2, #0x20
+	MOVT r2, #0xA8
+	ORR r1, r1, r2
+	STR r1, [r4, #0x100]
+	MOV r0, #0x4
+	BL illuminate_RGB_LED
+	LDMFD SP!, {lr, r1-r12}
+	BX lr
+pause:
+	MOV r3, #0x2
 	STR r3, [r4]
 	MOV r4, #0xE000
 	MOVT r4, #0xE000
 	LDR r1, [r4, #0x180]
-	MOV r2, #0x36
-	MOVT r2, #0x28
+	MOV r2, #0x20
+	MOVT r2, #0x8
 	ORR r1, r1, r2
 	STR r1, [r4, #0x180]
-	LDMFD SP!, {lr, r0-r12}
-	BX lr
-unPause:
-	BIC r3, #0x1
-	STR r3, [r4]
-	LDR r1, [r4, #0x100]
-	MOV r2, #0x36
-	MOVT r2, #0x28
-	ORR r1, r1, r2
-	STR r1, [r4, #0x180]
-	LDMFD SP!, {lr, r0-r12}
+	MOV r0, #0x1
+	BL illuminate_RGB_LED
+	LDMFD SP!, {lr, r1-r12}
 	BX lr
 notPause:
 	CMP r0, #0x32	;if button 2(quit) is clicked, disable all interrupt and exit infinate loop
@@ -673,7 +643,7 @@ notPause:
 	MOVT r2, #0x28
 	ORR r1, r1, r2
 	STR r1, [r4, #0x180]
-	LDMFD SP!, {lr, r0-r12}
+	LDMFD SP!, {lr, r1-r12}
 	BX lr
 notQuit:
 	CMP r0, #0x33	;if button 3(mute/unmute) is clicked, disable/enable music
@@ -692,8 +662,9 @@ notQuit:
 	LDRB r1, [r10, #0x51C]
 	BIC r1, #0x10
 	STRB r1, [r10, #0x51C] ; enables speaker pin to digital
-	LDMFD SP!, {lr, r0-r12}
+	LDMFD SP!, {lr, r1-r12}
 	BX lr
+
 unMute:
 	BIC r3, #0x1
 	STR r3, [r4]
@@ -706,15 +677,11 @@ unMute:
 	LDMFD SP!, {lr, r0-r12}
 	BX lr
 notMute:
-	LDMFD SP!, {lr, r0-r12}
+	LDMFD SP!, {lr, r1-r12}
 	BX lr
-
 
 nextNote:
 	STMFD SP!, {lr, r3-r5, r7-r12}
-
-
-
 restartSong:
 	LDR r4, songPtr
 	ADD r4, r4, r6
@@ -746,8 +713,6 @@ dontStop:
 	IT EQ
 	MOVEQ r6, #0x0
 	BEQ restartSong
-
-
 	ADD r6, r6, #0x1 ;increase pointer offset
 	MOV r4, #0x1000
 	MOVT r4, #0x4003
@@ -761,7 +726,6 @@ holdNote:
 	ORR r1, r1, #0x1
 	STR r1, [r4, #0xC]
 timerOff:
-
 	LDMFD SP!, {lr, r3-r5, r7-r12}
 	BX lr
 
@@ -787,7 +751,6 @@ redrawBoard:	;shifts strings and redraws board
 	BL convertToAscii
 	LDR r4, PLAYER_SCORE_ASCII_PTR
 	BL output_string
-
 	LDR r4, TIMER_DISPLAY_PTR
 	BL output_string
 	;TODO: output timer in string form here
@@ -799,38 +762,37 @@ redrawBoard:	;shifts strings and redraws board
 	LDR r2, GAME_TIMER_PTR
 	LDRB r0, [r2]
 	LDR r1, GAME_TIMER_ASCII_PTR
-
+	CMP r0, #9
+	BGT notSingleDigit
+	STMFD SP!,{r0}
+	ADD r6, r6, #0x1
+	MOV r0, #0x20
+	BL output_character
+	LDMFD SP!,{r0}
+notSingleDigit:
 	BL convertToAscii
 	LDR r4, GAME_TIMER_ASCII_PTR
 	BL output_string
-
 	LDR r4, boardPtr
 	BL output_string
-
 	; set leds to correct lives
 	LDR r4, FROG_LIVES_PTR
 	LDRB r2, [r4]
-
 	CMP r2, #0x4
 	IT GE
 	MOVGE r0, #0xF
-
 	CMP r2, #0x3
 	IT EQ
 	MOVEQ r0, #0x7
-
 	CMP r2, #0x2
 	IT EQ
 	MOVEQ r0, #0x3
-
 	CMP r2, #0x1
 	IT EQ
 	MOVEQ r0, #0x1
-
 	CMP r2, #0x0
 	IT EQ
 	MOVEQ r0, #0x0
-
 	BL illuminate_LEDs
 	LDMFD SP!, {lr, r0-r12}
 	BX lr
@@ -846,21 +808,18 @@ shiftSetOfRows:	;r0 starting row
 	MOV r9, r1
 	MOV r5, #49
 	ADD r8, r2, #1
-
 shiftLines:
 	MOV r0, r10
 	MUL r7, r4, r5
 	ADD r0, r0, r7
 	ADD r0, r0, #1
 	MOV r1, #45
-
 	STMFD SP!, {r0-r2}
 	MOV r0, r11
 	MOV r1, r4
 	BL generateRandomCharacter
 	MOV r3, r0
 	LDMFD SP!, {r0-r2}
-
 	STMFD SP!, {r0-r3}
 	BL shift_string
 	LDMFD SP!, {r0-r3}
@@ -891,7 +850,6 @@ generateRandomCharacter:	;r0 if 0 then water, if 1 then truck, if 2 then car
 	MOV r1, #-1	;sixth place in spawn location
 	CMP r4, #0
 	BNE isNotWaterLeft
-
 	STMFD SP!, {r0}
 	BL checkForFrog
 	CMP r0, r7
@@ -900,8 +858,6 @@ generateRandomCharacter:	;r0 if 0 then water, if 1 then truck, if 2 then car
 	BL shiftFrog
 frogNotInWaterSectionLeft:
 	LDMFD SP!, {r0}
-
-
 	BL spawnWaterTile
 	LDMFD SP!, {lr, r3-r12}
 	BX lr
@@ -910,7 +866,6 @@ isNotWaterLeft:
 	BL spawnRoadTile
 	LDMFD SP!, {lr, r3-r12}
 	BX lr
-
 isRight:
 	MOV r0,#0
 	MOV r2,#1
@@ -918,7 +873,6 @@ isRight:
 	MOV r1,#1
 	CMP r4, #0
 	BNE isNotWaterRight
-
 	STMFD SP!, {r0}
 	BL checkForFrog
 	CMP r0, r7
@@ -927,7 +881,6 @@ isRight:
 	BL shiftFrog
 frogNotInWaterSectionRight:
 	LDMFD SP!, {r0}
-
 	BL spawnWaterTile
 	LDMFD SP!, {lr, r3-r12}
 	BX lr
@@ -988,7 +941,6 @@ notTurtleSpawn:
 	LDRB r1, [r4,r0]
 	CMP r1, #0x7E
 	BNE isWaterTile
-
 	;at this point all possible continuating spawning possiblities are false
 	MOV r0,#7
 	BL rng
@@ -1020,10 +972,8 @@ notTurtleTile:
 notLilypadTile:
 	LDMFD SP!, {lr, r2-r12}
 	BX lr
-
 isWaterTile:
 	MOV r0, #0x7E
-
 	LDMFD SP!, {lr, r2-r12}
 	BX lr
 
@@ -1047,12 +997,10 @@ notTruckSpawn:
 	LDRB r1, [r5,r7]
 	CMP r1, #0x20
 	BNE isRoadTile
-
 	MOV r0,#7
 	BL rng
 	CMP r0, #0x0 ;if random number is 0, obstical needs to be created
 	BNE isRoadTile
-
 	CMP r4, #1
 	BNE notTruckTile
 	MOV r0, #0x23
@@ -1099,103 +1047,104 @@ notSearchValue:
 	LDMFD SP!, {lr, r4-r12}
 	BX lr
 
-
-
-check_valid_location:
-	STMFD SP!, {lr, r3-r12}
-
-	MOV r0, #0x1
-
-	CMP r1, #100
-	IT GT
-	MOVGT r0, #0x2
-
-	CMP r1, #145
-	IT GT
-	MOVGT r0, #0x1
-
-	CMP r2, #'*'
-	IT EQ
-	MOVEQ r0, #0x0
-
-
-	CMP r2, #'A'
-	IT EQ
-	MOVEQ r0, #0x0
-
-	CMP r2, #'-'
-	IT EQ
-	MOVEQ r0, #0x0
-
-	CMP r2, #'|'
-	IT EQ
-	MOVEQ r0, #0x0
-
-	CMP r2, #'C'
-	IT EQ
-	MOVEQ r0, #0x0
-
-	CMP r2, #'#'
-	IT EQ
-	MOVEQ r0, #0x0
-
-	CMP r2, #'H'
-	IT EQ
-	MOVEQ r0, #0x0
-
-	CMP r2, #'~'
-	IT EQ
-	MOVEQ r0, #0x0
-
-
-	LDMFD SP!, {lr, r3-r12}
-	BX lr
-
+check_valid_location:	;r0 value to check
+		STMFD SP!, {lr, r1-r12}
+		MOV r1, r0
+		MOV r0, #0x1
+		CMP r1, #'+'
+		BNE notFly
+		MOV r0, #100
+		BL awardPoints
+		MOV r0, #1
+notFly:
+		CMP r1, #'*'
+		IT EQ
+		MOVEQ r0, #0x0
+		CMP r1, #'A'
+		IT EQ
+		MOVEQ r0, #0x0
+		CMP r1, #'-'
+		IT EQ
+		MOVEQ r0, #0x0
+		CMP r1, #'|'
+		IT EQ
+		MOVEQ r0, #0x0
+		CMP r1, #'C'
+		IT EQ
+		MOVEQ r0, #0x0
+		CMP r1, #'#'
+		IT EQ
+		MOVEQ r0, #0x0
+		CMP r1, #'H'
+		IT EQ
+		MOVEQ r0, #0x0
+		CMP r1, #'~'
+		IT EQ
+		MOVEQ r0, #0x0
+		LDMFD SP!, {lr, r1-r12}
+		BX lr
 
 putBackFrog:
-	STMFD SP!,{lr, r0-r12}
-	LDR r5, frogLocationPtr
-	LDR r7,[r5]
-	MOV r3, #0x26
-	LDRB r2,[r4,r7]
-	BL check_valid_location
-	CMP r0, #0
-	BNE validSpace
-	;frog is killed actions taken here
-	;decriment lives/points here
-	BL frogLifeLost
+			STMFD SP!,{lr, r0-r12}
+			LDR r5, frogLocationPtr
+			LDR r7,[r5]
+			MOV r3, #0x26
+			LDRB r0,[r4,r7]
+			BL check_valid_location
+			CMP r0, #0
+			BNE validSpace
+			;frog is killed actions taken here
+			;decriment lives/points here
+			BL frogLifeLost
 
-	LDR r7, frogLocationPtr
-	LDR r7,[r7]
-	;move to spawn location
+			LDR r7, frogLocationPtr
+			LDR r7,[r7]
+			;move to spawn location
 validSpace:
-	STRB r3,[r4,r7]
-	LDMFD sp!, {lr, r0-r12}
-	BX lr
+			STRB r3,[r4,r7]
+			LDMFD sp!, {lr, r0-r12}
+			BX lr
+
 removeFrog:
-	STMFD SP!,{lr, r0-r12}
-	LDR r5, frogLocationPtr
-	LDR r7,[r5]
-	LDR r3, previousFrogValuePtr
-	LDR r3, [r3]
-	STRB r3,[r4,r7]
-	LDMFD sp!, {lr, r0-r12}
-	BX lr
+			STMFD SP!,{lr, r0-r12}
+			LDR r5, frogLocationPtr
+			LDR r7,[r5]
+			LDR r3, previousFrogValuePtr
+			LDR r3, [r3]
+			STRB r3,[r4,r7]
+			LDMFD sp!, {lr, r0-r12}
+			BX lr
 
 resetFrog:
 	STMFD SP!,{lr, r0-r12}
-	;reset prevousFrogLocation
-	LDR r7, previousFrogLocationPtr
-	MOV r1, #0x41D
-	STR r1,[r7]
-	;reset previosFrogValue
-	LDR r7, previousFrogValuePtr
-	MOV r1, #0x2E
-	STR r1,[r7]
-	;reset frogLocation
+	;get frogLocation
 	LDR r7, frogLocationPtr
-	MOV r1, #0x2C5
-	STR r1,[r7]
+	LDR r10, [r7]
+	;get previousFrogValue
+	LDR r8, previousFrogValuePtr
+	LDR r9, [r8]
+	;get reset postion
+	MOV r0, #14
+	BL convertFromNthRowToMemoryLocation
+	MOV r1, r0
+	ADD r1, r1, #1
+	MOV r0, #45
+	BL rng
+	ADD r0, r0, r1
+	;set frog to new postion
+	MOV r2, #0x26
+	STRB r2, [r0]
+	;set frogLocation to new reset postion
+	LDR r3, boardPtr
+	STRB r9, [r3, r10]
+	SUB r0, r0, r3
+	STR r0, [r7]
+	;set previousFrogLocation to new reset postion
+	LDR r7, previousFrogLocationPtr
+	STR r0,[r7]
+	;reset previosFrogValue
+	MOV r1, #0x2E
+	STR r1,[r8]
 	LDMFD sp!, {lr, r0-r12}
 	BX lr
 
@@ -1215,6 +1164,7 @@ checkRowForFrog:
 frogFound:
 	LDMFD sp!, {lr, r1-r12}
 	BX lr
+
 shiftFrog:	;r0 -1 for left shift, 1 for right shift
 	STMFD SP!,{lr, r1-r12}
 	LDR r3, frogLocationPtr
@@ -1235,7 +1185,7 @@ notEndOfBoard:
 spawnFly:	;spawns flys
 	STMFD SP!,{lr, r0-r12}
 	MOV r0, #2
-		BL convertFromNthRowToMemoryLocation
+	BL convertFromNthRowToMemoryLocation
 	ADD r0, r0, #8
 	MOV r7, r0
 	MOV r1, #0
@@ -1264,7 +1214,6 @@ foundFly:
 
 resetBoard:
 	STMFD SP!,{lr, r0-r12}
-
  	BL clearHomes
 	;clear river
 	MOV r0, #3
@@ -1289,7 +1238,6 @@ clearRoad:
 	CMP r4, #5
 	ADD r0, r0, #0x49
 	BNE clearRoad
-
 	LDMFD sp!, {lr, r0-r12}
 	BX lr
 
@@ -1310,10 +1258,9 @@ clearHome:
 	LDR r4, WIN_COUNTER_PTR
 	MOV r1, #0
 	STRB r1, [r4]
-
-
 	LDMFD SP!, {lr, r0-r12}
 	BX lr
+
 fillHome:		;the nth home slot starting at 0 and ending at 4
 	STMFD SP!,{lr, r1-r12}
 	;get to home row
@@ -1331,6 +1278,7 @@ fillHome:		;the nth home slot starting at 0 and ending at 4
 	BL fill_string
 	LDMFD SP!, {lr, r1-r12}
 	BX lr
+
 checkWhichWinSlot:
 	STMFD SP!,{lr, r1-r12}
 	LDR r4, frogLocationPtr
@@ -1342,7 +1290,6 @@ checkWhichWinSlot:
 	ADD r0,r0, #5
 	MOV r2, #-1
 searchSlots:
-
 	CMP r0, r4
 	BGT foundSlot
 	ADD r2, r2, #1
@@ -1353,18 +1300,23 @@ foundSlot:
 	MOV r0, r2
 	LDMFD SP!, {lr, r1-r12}
 	BX lr
+
 checkWinCondition:
 	STMFD SP!,{lr, r0-r12}
 	BL checkForFrog
 	CMP r0, #2
 	BEQ winDectected
-
-
 	LDMFD sp!, {lr, r0-r12}
 	BX lr
-
 winDectected:
-	LDR r1, [r4]
+	MOV r0, #50
+	BL awardPoints
+	LDR r4, GAME_TIMER_PTR
+	STR r1, [r4]
+	MOV r0, r1
+	MOV r2, #10
+	MUL r0, r0, r2
+	BL awardPoints
 	LDR r4, WIN_COUNTER_PTR
 	LDRB r1, [r4]
 	ADD r1, r1, #1
@@ -1373,28 +1325,20 @@ winDectected:
 	BL levelUp
 	MOV r1, #0
 	STRB r1, [r4]
-	LDR r4, LEVEL_BASE_TIME_PTR
-	LDR r1, [r4]
-	MOV r0, #-1
-	MOV r2, #-1
-	BL update_game_information
 	LDMFD sp!, {lr, r0-r12}
 	BX lr
 noLevelUp:
 	STRB r1, [r4]
 	BL checkWhichWinSlot
-	BL fillHome
 	LDR r4, LEVEL_BASE_TIME_PTR
 	LDR r1, [r4]
-	MOV r0, #-1
-	MOV r2, #-1
-	BL update_game_information
+	LDR r4, GAME_TIMER_PTR
 	STR r1, [r4] ; set the game back to base time if you make it to other side
 	BL resetFrog
-	BL putBackFrog
-
+	BL fillHome
 	LDMFD sp!, {lr, r0-r12}
 	BX lr
+
 convertFromNthRowToMemoryLocation: ;r0 is nth row
 	STMFD SP!,{lr, r1-r12}
 	LDR r4, boardPtr
