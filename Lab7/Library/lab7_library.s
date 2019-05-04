@@ -57,17 +57,19 @@ settings: .word 0x0
 PLAYER_SCORE: .word 0x0
 GAME_TIMER: .word 0x3C
 LEVEL_BASE_TIME: .word 0x3C
-InfoDisplay: .string "Your Current Score is: ", 0x0
+ScoreDisplay: .string "Your Current Score is: ", 0x0
+LevelDisplay: .string "Your Current Level is: ", 0x0
 PLAYER_SCORE_ASCII: .word 0x0 ; this is the players score, this should be displayed once the game is over
 PLAYER_SCORE_ASCII_BUFFER: .word 0x0 ;buffer for player score
 timerDisplay: .string "Time Left: ",0x0
 GAME_TIMER_ASCII: .word 0x0
+GAME_LEVEL_ASCII: .word 0x0
 
 GAME_STATUS: .word 0x0 ; if game is running, this value is 0, if the game is over, or has not started yet, it is a 1, and 2 if the game is paused.
 BOARD_UPDATE: .byte 0x0 ; if this is not 0 the game moves the obstacles on the board
 FROG_LIVES: .byte 0x4 ; the game lives, if this reaches 0 the game is over
 WIN_COUNTER: .byte 0x0 ; this counter is incremented every time the player gets to the other end of the board safely, should be reset when it reaches 3, and the game should "level up"
-GAME_LEVEL: .byte 0x0; what level you're on
+GAME_LEVEL: .word 0x0; what level you're on
 	.text
 	.global lab7_library
 	.global uart_init
@@ -121,7 +123,9 @@ FROG_LIVES_PTR: .word FROG_LIVES
 PLAYER_SCORE_ASCII_PTR: .word PLAYER_SCORE_ASCII
 PLAYER_SCORE_PTR: .word PLAYER_SCORE
 WIN_COUNTER_PTR: .word WIN_COUNTER
-INFO_DISPLAY_PTR: .word InfoDisplay
+SCORE_DISPLAY_PTR: .word ScoreDisplay
+LEVEL_DISPLAY_PTR: .word LevelDisplay
+GAME_LEVEL_ASCII_PTR: .word  GAME_LEVEL_ASCII
 TIMER_DISPLAY_PTR: .word timerDisplay
 modePtr: .word 0x20005000
 g0PTR: .word gameoverScreen
@@ -131,14 +135,17 @@ fSSPTR: .word finalScoreString
 GAME_LEVEL_PTR: .word GAME_LEVEL
 LEVEL_BASE_TIME_PTR: .word LEVEL_BASE_TIME
 ;-------------------------------------------------------------
-setLevelTime:
+setLevelTime:	;r0: new level time
+				;subroutune sets level time
 	STMFD SP!, {lr, r1-r12}
 	LDR r4, LEVEL_BASE_TIME_PTR
 	STR r0, [r4]
 	LDMFD SP!, {lr, r1-r12}
 	BX lr
 
-frogLifeLost:
+frogLifeLost:	;subroutune decriments frog lives and reset the frog to the
+				; first line. If the frog lives is equal to 0 then it will
+				; update the game informaiton and change the RGB light to blue.
 	STMFD SP!, {lr, r0-r12}
 
 	LDR r4, FROG_LIVES_PTR
@@ -156,13 +163,18 @@ ded:
 	BL update_game_information
 	MOV r0, #0x2
 	BL illuminate_RGB_LED
+	LDR r4, GAME_LEVEL_PTR
+	MOV r1, #0
+	STRB r1, [r4]
+	LDR r4, GAME_TIMER_PTR
+	MOV r1, #60
+	STRB r1, [r4]
 notDed:
 	BL resetFrog
-
 	LDMFD SP!, {lr, r0-r12}
 	BX lr
 
-awardPoints: ; gives points to the player from r0; pity the player, feed him well my child
+awardPoints:	;gives points to the player from r0; pity the player, feed him well my child
 	STMFD SP!, {lr, r1-r12}
 	LDR r4, PLAYER_SCORE_PTR
 	LDR r1, [r4]
@@ -170,7 +182,7 @@ awardPoints: ; gives points to the player from r0; pity the player, feed him wel
 	STR r1, [r4]
 	LDMFD SP!, {lr, r1-r12}
 	BX lr
-resetFrogLives:
+resetFrogLives:	;resets frog lives to 4 and clear score
 	STMFD SP!, {lr, r0-r12}
 	LDR r4, FROG_LIVES_PTR
 	LDRB r1, [r4]
@@ -184,7 +196,7 @@ resetFrogLives:
 	LDMFD SP!, {lr, r0-r12}
 	BX lr
 
-printGameOver:
+printGameOver:	;prints game over with game over graphic score and frog graphic
 	STMFD SP!, {lr, r0-r12}
 	LDR r1, fSSPTR
 	MOV r0, r2
@@ -216,13 +228,16 @@ levelUp:
 	STR r1, [r4, #0x28]
 	;reset board
 	LDR r4, GAME_LEVEL_PTR
-	MOV r1, #0x0
+	LDR r1, [r4]
+	ADD r1, r1, #1
 	STRB r1, [r4]
 	BL clearHomes
 	BL resetFrog
 	LDR r4, LEVEL_BASE_TIME_PTR
 	LDR r1, [r4]
 	SUB r1, r1, #10
+	STR r1, [r4]
+	LDR r4, GAME_TIMER_PTR
 	STR r1, [r4]
 	MOV r0, #250
 	BL awardPoints
@@ -258,7 +273,19 @@ noScoreUpdate:
 	LDMFD SP!, {lr, r3-r12}
 	BX lr
 
-Uart0Handler:
+Uart0Handler:		;activivated when a button on the keyboard is clicked.
+					; if the game is in the menu mode it will check if 1,2,3 or m is clicked
+					;  if 1 it will start the game
+					;  if 2 it will display the instructions
+					;  if 3 it will display the high score
+					;  if m it will mute the sound
+					; if the game is in the game mode it will check if w,a,s or d is clicked
+					;  if w it will move the frog up on the screen(increment score by 10 points)
+					;  if a it will move the frog left on the screen
+					;  if s it will move the frog right on the screen
+					;  if d it will move the frog down on the screen(decrement score by 10 points, unless its the starting line)
+					;  it will then check if that is a valid position for the frog if so it
+					;  will mive the frog, if not it will run the frogLifeLost subroutune
 		STMFD SP!, {lr, r0-r12}
 		;clear UART interrupt
 		MOV r4, #0xC000
@@ -267,16 +294,29 @@ Uart0Handler:
 		ORR r1, r1, #0x10
 		STRB r1, [r4, #0x044]
 
-
-		LDR r0, GAME_STATUS_PTR
-		LDRB r0,[r0]
-		CMP r0, #0
-		BEQ gameRunning
-
-
 		MOV r4, #0x0000
 		MOVT r4, #0x4003
 		BL read_character
+
+		CMP r0, #'e'
+		BNE notE
+		MOV r0, #1
+		MOV r1, #-1
+		MOV r2, #-1
+		BL update_game_information
+		BL resetFrog
+		LDMFD SP!, {lr, r0-r12}
+		bx lr
+	;----------------------
+notE:
+
+		STMFD SP!, {r0}
+		LDR r0, GAME_STATUS_PTR
+		LDRB r0,[r0]
+		CMP r0, #0
+		LDMFD SP!, {r0}
+		BEQ gameRunning
+
 		CMP r0, #'m'
 		BNE notM
 		LDR r1, [r4, #0xC] ;toggle timer 0
@@ -417,7 +457,8 @@ notValidKey:
 		LDMFD SP!, {lr, r0-r12}
 		BX lr
 
-Timer0Handler: ;timer for game clock (1 second per cycle)
+Timer0Handler: ;timer for game clock (1 second per cycle), if the game timer gets to 0,
+				; frog gets reset, timer 2 gets disabled and gameover screen will appear
 	STMFD SP!, {lr, r3-r5, r7-r11}
 	MOV r4, #0
 	MOVT r4, #0x4003
@@ -486,7 +527,8 @@ Timer1Handler: ; controls speaker pitch
 
 
 
-Timer2Handler: ;Main handler
+Timer2Handler: 	;Main handler shifts all rows and check if the frog is still in a valid location
+				; after that it runs the checkWinCondition, spawnFly and redrawBoard subroutines
 	STMFD SP!, {lr, r1-r5, r7-r11}
 	MOV r4, #0x2000
 	MOVT r4, #0x4003
@@ -504,7 +546,7 @@ Timer2Handler: ;Main handler
 	STMFD SP!, {lr, r0-r3}
 	MOV r0, #3
 	MOV r1, #7
-	MOV r2, #1
+	MOV r2, #0
 	MOV r3, #0
 	BL shiftSetOfRows
 	LDMFD SP!, {lr, r0-r3}
@@ -562,8 +604,7 @@ carLinesFinished:
 	BX lr
 
 
-PortAHandler:   ;if keypad gets a input this subroutine will check the value given by uart, if its not 0x0D then it will print it out and stores
-				;it on the stack if the value is 0x0D then it will run the virtual alu and print the result to the screen
+PortAHandler:   ;if keypad gets a input this subroutine will do all the background stuff and run buttonOptions
 	STMFD SP!, {lr, r0-r12}
 	MOV r4, #0x7000
 	MOVT r4, #0x4000
@@ -599,7 +640,9 @@ delayLoop:				;delay to syncronize buttons
 	LDMFD SP!, {lr, r0-r12}
 	BX lr
 
-buttonOptions:
+buttonOptions:	;r0: the ascii value of the button
+				; if r0 is 0x31 it will pause/unpause the program
+				; if r0 is 0x32 it will restart the game
 	STMFD SP!, {lr, r1-r12}
 	LDR r4, GAME_STATUS_PTR
 	LDR r3, [r4]
@@ -625,62 +668,39 @@ pause:
 	STR r3, [r4]
 	MOV r4, #0xE000
 	MOVT r4, #0xE000
-	LDR r1, [r4, #0x180]
-	MOV r2, #0x20
-	MOVT r2, #0x8
-	ORR r1, r1, r2
+	MOV r1, #0x20
+	MOVT r1, #0xA8
 	STR r1, [r4, #0x180]
 	MOV r0, #0x1
 	BL illuminate_RGB_LED
 	LDMFD SP!, {lr, r1-r12}
 	BX lr
 notPause:
-	CMP r0, #0x32	;if button 2(quit) is clicked, disable all interrupt and exit infinate loop
-	BNE notQuit
-	ORR r3, #0x2
-	STR r3, [r4]
-	MOV r2, #0x2F
-	MOVT r2, #0x28
-	ORR r1, r1, r2
-	STR r1, [r4, #0x180]
+	CMP r0, #0x32	;if button 1(pause) is clicked, disable all interrupts except gpio
+	BNE notRestart
+	LDR r4, GAME_LEVEL_PTR
+	MOV r1, #0
+	STRB r1, [r4]
+	LDR r4, GAME_TIMER_PTR
+	MOV r1, #60
+	STRB r1, [r4]
+	LDR r4, PLAYER_SCORE_PTR
+	MOV r1, #0
+	STR r1, [r4]
+
+	LDR r4, FROG_LIVES_PTR
+	MOV r0, #4
+	STRB r0, [r4]
+
+	BL resetFrog
+
 	LDMFD SP!, {lr, r1-r12}
 	BX lr
-notQuit:
-	CMP r0, #0x33	;if button 3(mute/unmute) is clicked, disable/enable music
-	BNE notMute
-	MOV r10, #0x6000
-	MOVt r10, #0x4000; address for port C
-	MOV r5, #0x4
-	AND r5, r5, r3
-	CMP r5,#0
-	BNE unMute
-	ORR r3, #0x1
-	STR r3, [r4]
-	LDRB r1, [r10, #0x400]
-	BIC r1, #0x10
-	STRB r1, [r10, #0x400]; set speaker pin to output
-	LDRB r1, [r10, #0x51C]
-	BIC r1, #0x10
-	STRB r1, [r10, #0x51C] ; enables speaker pin to digital
+notRestart:
 	LDMFD SP!, {lr, r1-r12}
 	BX lr
 
-unMute:
-	BIC r3, #0x1
-	STR r3, [r4]
-	LDRB r1, [r10, #0x400]
-	ORR r1, #0x10
-	STRB r1, [r10, #0x400]; set speaker pin to output
-	LDRB r1, [r10, #0x51C]
-	ORR r1, #0x10
-	STRB r1, [r10, #0x51C] ; enables speaker pin to digital
-	LDMFD SP!, {lr, r0-r12}
-	BX lr
-notMute:
-	LDMFD SP!, {lr, r1-r12}
-	BX lr
-
-nextNote:
+nextNote:	;runs song
 	STMFD SP!, {lr, r3-r5, r7-r12}
 restartSong:
 	LDR r4, songPtr
@@ -731,7 +751,7 @@ timerOff:
 
 
 
-redrawBoard:	;shifts strings and redraws board
+redrawBoard:	;redraws board
 	STMFD SP!, {lr, r0-r12}
 	ADD r6, r6, #0x1
 	MOV r0, #0x1B
@@ -742,8 +762,19 @@ redrawBoard:	;shifts strings and redraws board
 	ADD r6, r6, #0x1
 	MOV r0, #0x48
 	BL output_character ; clears screen
-	LDR r4, INFO_DISPLAY_PTR
+	LDR r4, SCORE_DISPLAY_PTR
 	BL output_string
+	STMFD SP!,{r0}
+	ADD r6, r6, #0x1
+	MOV r0, #0x1B
+	BL output_character ; clears screen
+	ADD r6, r6, #0x1
+	MOV r0, #0x5B
+	BL output_character ; clears screen
+	ADD r6, r6, #0x1
+	MOV r0, #0x4B
+	BL output_character ; clears screen
+	LDMFD SP!,{r0}
 	;TODO: output score in string form here
 	LDR r2, PLAYER_SCORE_PTR
 	LDR r0, [r2]
@@ -751,6 +782,18 @@ redrawBoard:	;shifts strings and redraws board
 	BL convertToAscii
 	LDR r4, PLAYER_SCORE_ASCII_PTR
 	BL output_string
+
+	LDR r4, LEVEL_DISPLAY_PTR
+	BL output_string
+
+	LDR r2, GAME_LEVEL_PTR
+	LDRB r0, [r2]
+	LDR r1, GAME_LEVEL_ASCII_PTR
+	BL convertToAscii
+	LDR r4, GAME_LEVEL_ASCII_PTR
+	BL convertToAscii
+	BL output_string
+
 	LDR r4, TIMER_DISPLAY_PTR
 	BL output_string
 	;TODO: output timer in string form here
@@ -762,14 +805,19 @@ redrawBoard:	;shifts strings and redraws board
 	LDR r2, GAME_TIMER_PTR
 	LDRB r0, [r2]
 	LDR r1, GAME_TIMER_ASCII_PTR
-	CMP r0, #9
-	BGT notSingleDigit
+
 	STMFD SP!,{r0}
 	ADD r6, r6, #0x1
-	MOV r0, #0x20
-	BL output_character
+	MOV r0, #0x1B
+	BL output_character ; clears screen
+	ADD r6, r6, #0x1
+	MOV r0, #0x5B
+	BL output_character ; clears screen
+	ADD r6, r6, #0x1
+	MOV r0, #0x4B
+	BL output_character ; clears screen
 	LDMFD SP!,{r0}
-notSingleDigit:
+
 	BL convertToAscii
 	LDR r4, GAME_TIMER_ASCII_PTR
 	BL output_string
@@ -801,6 +849,7 @@ shiftSetOfRows:	;r0 starting row
 				;r1 ending row
 				;r2 set shift pattern
 				;r3 set line type, 0 for water, 1 for trucks and 2 for cars
+				;shifts a set of rows from r0 to r1 in the direction of r2 and runs generateRandomCharacter
 	STMFD SP!, {lr, r4-r12}
 	MOV r4, r0
 	MOV r11, r3
@@ -837,6 +886,7 @@ shiftLines:
 generateRandomCharacter:	;r0 if 0 then water, if 1 then truck, if 2 then car
 							;r1 nth row
 							;r2 spawn direction
+							;Runs spawnWaterTile or spawnRoadTile depending on r0 on the row number in r1
 	STMFD SP!, {lr, r3-r12}
 	MOV r7, r1
 	MOV r5, #49
@@ -892,6 +942,8 @@ isNotWaterRight:
 
 spawnWaterTile:	;r0 beginning spawn location
 				;r1 spawn direction left=-1, right=1
+				;continues spawning previous spawning objects if needed, else it will
+				;generate a new water charcater
 	STMFD SP!, {lr, r2-r12}
 	MOV r4, r0
 	MOV r5, r1
@@ -981,6 +1033,8 @@ isWaterTile:
 spawnRoadTile:	;r0 beginning spawn location
 				;r1 spawn direction left=-1, right=1
 				;r2 1 if truck, 2 if car
+				;continues spawning previous spawning objects if needed, else it will
+				;generate a new road charcater
 	STMFD SP!, {lr, r3-r12}
 	MOV r7, r0
 	MOV r4,r2
@@ -1022,17 +1076,22 @@ checkForSpawn:	;r0 beginning spawn location
 				;r1 spawn direction left=-1, right=1
 				;r2 search value
 				;r3 max length
+				;checks if an object is in the middle of spawning
 	STMFD SP!, {lr, r4-r12}
 	MOV r5, #0
 	LDR r4, boardPtr
 countSpawn:
 	LDRB r7, [r4,r0]
+	CMP r7, #0x26
+	BNE isNotFrog
+	LDR r8, previousFrogValuePtr
+	LDRB r7,[r8]
+isNotFrog:
 	CMP r7, r2
 	BNE countDone
 	ADD r5, r5, #1
 	ADD r0, r0, r1
 	B countSpawn
-
 countDone:
 	MOV r0, r3
 	MOV r1, r5
@@ -1047,7 +1106,8 @@ notSearchValue:
 	LDMFD SP!, {lr, r4-r12}
 	BX lr
 
-check_valid_location:	;r0 value to check
+check_valid_location:	;r0 value to check, if r0 is valie it will return 1
+						;else it will return 0
 		STMFD SP!, {lr, r1-r12}
 		MOV r1, r0
 		MOV r0, #0x1
@@ -1084,28 +1144,32 @@ notFly:
 		LDMFD SP!, {lr, r1-r12}
 		BX lr
 
-putBackFrog:
+putBackFrog:	;put back frog in the screen
 			STMFD SP!,{lr, r0-r12}
 			LDR r5, frogLocationPtr
 			LDR r7,[r5]
-			MOV r3, #0x26
 			LDRB r0,[r4,r7]
+			MOV r1, r0
 			BL check_valid_location
 			CMP r0, #0
 			BNE validSpace
 			;frog is killed actions taken here
 			;decriment lives/points here
+			LDR r8, previousFrogValuePtr
+			STR r1, [r8]
+
 			BL frogLifeLost
 
 			LDR r7, frogLocationPtr
 			LDR r7,[r7]
 			;move to spawn location
 validSpace:
+			MOV r3, #0x26
 			STRB r3,[r4,r7]
 			LDMFD sp!, {lr, r0-r12}
 			BX lr
 
-removeFrog:
+removeFrog:	;removes frog from screen
 			STMFD SP!,{lr, r0-r12}
 			LDR r5, frogLocationPtr
 			LDR r7,[r5]
@@ -1115,7 +1179,7 @@ removeFrog:
 			LDMFD sp!, {lr, r0-r12}
 			BX lr
 
-resetFrog:
+resetFrog:	;resets frog to a previus postion
 	STMFD SP!,{lr, r0-r12}
 	;get frogLocation
 	LDR r7, frogLocationPtr
@@ -1126,6 +1190,11 @@ resetFrog:
 	;get reset postion
 	MOV r0, #14
 	BL convertFromNthRowToMemoryLocation
+	LDR r3, boardPtr
+	;CMP r10, #0x188
+	;BGT deleteFrog
+	STRB r9, [r3, r10]
+;deleteFrog:
 	MOV r1, r0
 	ADD r1, r1, #1
 	MOV r0, #45
@@ -1135,8 +1204,6 @@ resetFrog:
 	MOV r2, #0x26
 	STRB r2, [r0]
 	;set frogLocation to new reset postion
-	LDR r3, boardPtr
-	STRB r9, [r3, r10]
 	SUB r0, r0, r3
 	STR r0, [r7]
 	;set previousFrogLocation to new reset postion
@@ -1148,7 +1215,7 @@ resetFrog:
 	LDMFD sp!, {lr, r0-r12}
 	BX lr
 
-checkForFrog:
+checkForFrog:	;returns in r0 the row the frog is in
 	STMFD SP!,{lr, r1-r12}
 	MOV r0, #-1
 	LDR r5, boardPtr
@@ -1165,7 +1232,7 @@ frogFound:
 	LDMFD sp!, {lr, r1-r12}
 	BX lr
 
-shiftFrog:	;r0 -1 for left shift, 1 for right shift
+shiftFrog:	;r0 -1 to shift frog left, 1 to shift frog right
 	STMFD SP!,{lr, r1-r12}
 	LDR r3, frogLocationPtr
 	LDR r5, [r3]
@@ -1182,7 +1249,7 @@ notEndOfBoard:
 	LDMFD sp!, {lr, r1-r12}
 	BX lr
 
-spawnFly:	;spawns flys
+spawnFly:	;spawns flys on the board
 	STMFD SP!,{lr, r0-r12}
 	MOV r0, #2
 	BL convertFromNthRowToMemoryLocation
@@ -1212,36 +1279,7 @@ foundFly:
 	LDMFD sp!, {lr, r0-r12}
 	BX lr
 
-resetBoard:
-	STMFD SP!,{lr, r0-r12}
- 	BL clearHomes
-	;clear river
-	MOV r0, #3
-	BL convertFromNthRowToMemoryLocation
-	MOV r4, #0
-	MOV r1, #45
-	MOV r2, #0x7E
-clearRiver:
-	ADD r4, r4, #1
-	BL fill_string
-	CMP r4, #5
-	ADD r0, r0, #0x49
-	BNE clearRiver
-	;clear road
-	ADD r0, r0, #49
-	MOV r4, #0
-	MOV r1, #45
-	MOV r2, #0x20
-clearRoad:
-	ADD r4, r4, #1
-	BL fill_string
-	CMP r4, #5
-	ADD r0, r0, #0x49
-	BNE clearRoad
-	LDMFD sp!, {lr, r0-r12}
-	BX lr
-
-clearHomes:
+clearHomes:	;clears homes of any values
 	STMFD SP!,{lr, r0-r12}
 	MOV r0, #2
 	BL convertFromNthRowToMemoryLocation
@@ -1261,7 +1299,8 @@ clearHome:
 	LDMFD SP!, {lr, r0-r12}
 	BX lr
 
-fillHome:		;the nth home slot starting at 0 and ending at 4
+fillHome:		;r0: the nth home slot starting at 0 and ending at 4
+				; fills that home slot with H
 	STMFD SP!,{lr, r1-r12}
 	;get to home row
 	MOV r4, r0
@@ -1279,7 +1318,7 @@ fillHome:		;the nth home slot starting at 0 and ending at 4
 	LDMFD SP!, {lr, r1-r12}
 	BX lr
 
-checkWhichWinSlot:
+checkWhichWinSlot:	;retruns which win slot the frog is in
 	STMFD SP!,{lr, r1-r12}
 	LDR r4, frogLocationPtr
 	LDR r4, [r4]
@@ -1301,7 +1340,8 @@ foundSlot:
 	LDMFD SP!, {lr, r1-r12}
 	BX lr
 
-checkWinCondition:
+checkWinCondition: ;checks if the frog is in one of the win slots if it is it will
+					; level up if the user has 2 wins, and close the win slot and reset the frog
 	STMFD SP!,{lr, r0-r12}
 	BL checkForFrog
 	CMP r0, #2
@@ -1312,7 +1352,7 @@ winDectected:
 	MOV r0, #50
 	BL awardPoints
 	LDR r4, GAME_TIMER_PTR
-	STR r1, [r4]
+	LDR r1, [r4]
 	MOV r0, r1
 	MOV r2, #10
 	MUL r0, r0, r2

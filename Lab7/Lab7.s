@@ -25,7 +25,10 @@ inst11: .string "	- Getting a frog home is 50 Points", 0xD, 0xA
 inst12: .string "	- Eating a fly is 100 Points", 0xD, 0xA
 inst13: .string "	- Increasing to the next level is 250 Points", 0xD, 0xA
 inst14: .string "	- The time left after each trip home is added to your score", 0xD, 0xA
-inst15: .string "Press 0 to return to Menu", 0xD, 0xA, 0x0
+inst15: .string "To quit the game click e", 0xD, 0xA
+inst16: .string "To pause/unpause the game click 1 on the keypad", 0xD, 0xA
+inst17: .string "To restart the game click 2 on the keypad", 0xD, 0xA
+inst18: .string "Press 0 to return to Menu", 0xD, 0xA, 0x0
 hiscoreString: .string 0xD, 0xA ,"Hiscores will go here once they are implemented (Press 0 to return)", 0xD, 0xA, 0xD, 0xA, 0xD, 0xA
 hiscores1: .string " 1>-------- : ----",0xD, 0xA
 hiscores2: .string " 2>-------- : ----",0xD, 0xA

@@ -5,7 +5,7 @@
 
 
 
-rng:
+rng:	;takes a number in r0 and returns a random number between r0 and 0
 	STMFD SP!, {lr, r1-r12}
 	MOV r4, #0x0000
 	MOVT r4, #0x4003
