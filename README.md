@@ -23,7 +23,7 @@ This project implements a text‑based clone of the classic **Frogger** game ent
 ---
 
 ## Project Structure
-`
+```
 /
 ├── .launches/ # IDE launch configurations
 ├── .settings/ # IDE project settings
@@ -43,7 +43,7 @@ This project implements a text‑based clone of the classic **Frogger** game ent
 ├── .ccsproject # CCS IDE project file
 ├── .cproject # Eclipse IDE project file
 └── .project # Generic Eclipse project file
-`
+```
 
 ---
 
@@ -85,10 +85,7 @@ Gameplay Controls
     2 — Restart level
 
     M — Mute/unmute music
-
-License & Credits
-
-    TM4C123GH6PM datasheet & reference manual
+'
 
     EduBase‑V2 trainer board documentation
 
