@@ -72,6 +72,7 @@ arm-none-eabi-gcc -mcpu=cortex-m4 -mthumb -g \
 arm-none-eabi-objcopy -O ihex frogger.elf frogger.hex
 lm4flash frogger.hex
 ```
+```
 Gameplay Controls
 
     W/A/S/D (keypad) — Move the frog
@@ -85,10 +86,10 @@ Gameplay Controls
     2 — Restart level
 
     M — Mute/unmute music
-'
 
-    EduBase‑V2 trainer board documentation
+```
+  Tiva C Series Documentation: https://www.ti.com/lit/ug/spmu296/spmu296.pdf
 
-    Based on classic Frogger gameplay design
+  Based on classic Frogger gameplay design
 
-::contentReference[oaicite:0]{index=0}
+
